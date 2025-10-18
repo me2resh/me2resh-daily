@@ -37,12 +37,7 @@ export const lambdaHandler = async (event: ScheduledEvent): Promise<void> => {
 
         // Send email with results
         const subject = `${config.email.subject_prefix} — ${scanResult.date}`;
-        await emailSender.sendEmail(
-            config.email.to_address,
-            config.email.from_address,
-            subject,
-            scanResult,
-        );
+        await emailSender.sendEmail(config.email.to_address, config.email.from_address, subject, scanResult);
 
         logger.info('Email sent successfully', {
             to: config.email.to_address,

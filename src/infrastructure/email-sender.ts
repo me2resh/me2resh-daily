@@ -62,13 +62,23 @@ export class SESEmailSender implements EmailSender {
         const topSignalsHtml = scanResult.top_signals
             .map(
                 (signal) => `
-            <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${this.getSeverityColor(signal.severity)}; background-color: #f9f9f9;">
+            <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${this.getSeverityColor(
+                signal.severity,
+            )}; background-color: #f9f9f9;">
                 <h3 style="margin-top: 0; color: #333;">${signal.title}</h3>
                 <p><strong>Why it matters:</strong> ${signal.why_it_matters}</p>
                 <p><strong>Impact:</strong> ${signal.impact.join(', ')}</p>
-                <p><strong>Severity:</strong> <span style="color: ${this.getSeverityColor(signal.severity)}; font-weight: bold;">${signal.severity.toUpperCase()}</span></p>
+                <p><strong>Severity:</strong> <span style="color: ${this.getSeverityColor(
+                    signal.severity,
+                )}; font-weight: bold;">${signal.severity.toUpperCase()}</span></p>
                 <p><strong>Published:</strong> ${signal.published_at}</p>
-                ${signal.notes_for_actions.length > 0 ? `<p><strong>Actions:</strong></p><ul>${signal.notes_for_actions.map((action) => `<li>${action}</li>`).join('')}</ul>` : ''}
+                ${
+                    signal.notes_for_actions.length > 0
+                        ? `<p><strong>Actions:</strong></p><ul>${signal.notes_for_actions
+                              .map((action) => `<li>${action}</li>`)
+                              .join('')}</ul>`
+                        : ''
+                }
                 <p><a href="${signal.source_url}" style="color: #0066cc;">View source</a></p>
             </div>
         `,
@@ -97,7 +107,9 @@ export class SESEmailSender implements EmailSender {
     <pre>${JSON.stringify(scanResult, null, 2)}</pre>
 
     <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
-    <p style="font-size: 12px; color: #777;">Generated with Me2resh Daily Intel Scan | ${scanResult.timezone}</p>
+    <p style="font-size: 12px; color: #777;">Generated with Me2resh Daily Intel Scan | ${
+        scanResult.timezone
+    }</p>
 </body>
 </html>
         `;

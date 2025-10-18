@@ -35,37 +35,37 @@ export class HttpSourceFetcher implements SourceFetcher {
         }
     }
 
-    private async fetchRssFeed(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchRssFeed(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires RSS parser library
         logger.info('RSS fetching not yet implemented', { source: source.name });
         return [];
     }
 
-    private async fetchHtmlPage(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchHtmlPage(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires HTML parser and scraping logic
         logger.info('HTML fetching not yet implemented', { source: source.name });
         return [];
     }
 
-    private async fetchGitHubReleases(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchGitHubReleases(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires GitHub API client
         logger.info('GitHub releases fetching not yet implemented', { source: source.name });
         return [];
     }
 
-    private async fetchGitHubAdvisories(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchGitHubAdvisories(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires GitHub API client
         logger.info('GitHub advisories fetching not yet implemented', { source: source.name });
         return [];
     }
 
-    private async fetchNVD(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchNVD(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires NVD API client
         logger.info('NVD fetching not yet implemented', { source: source.name });
         return [];
     }
 
-    private async fetchCISA(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchCISA(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
         // Implementation placeholder - requires CISA API client
         logger.info('CISA fetching not yet implemented', { source: source.name });
         return [];

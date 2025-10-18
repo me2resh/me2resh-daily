@@ -8,6 +8,7 @@ export class ConfigLoader {
     private static instance: ConfigLoader;
     private config: SourceConfiguration | null = null;
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     private constructor() {}
 
     static getInstance(): ConfigLoader {

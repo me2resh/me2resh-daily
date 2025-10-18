@@ -4,10 +4,7 @@ import { SourceFetcher } from '@/infrastructure/source-fetcher';
 import { logger } from '@/utils/logger';
 
 export class ScanService {
-    constructor(
-        private config: SourceConfiguration,
-        private sourceFetcher: SourceFetcher,
-    ) {}
+    constructor(private config: SourceConfiguration, private sourceFetcher: SourceFetcher) {}
 
     async performScan(): Promise<ScanResult> {
         logger.info('Starting daily scan', {
@@ -142,10 +139,11 @@ export class ScanService {
         const impacts: Array<'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy'> = [];
         const contentLower = content.toLowerCase();
 
+        type ImpactType = 'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy';
         for (const [impactType, keywords] of Object.entries(this.config.impact_keywords)) {
             for (const keyword of keywords) {
                 if (contentLower.includes(keyword.toLowerCase())) {
-                    impacts.push(impactType as any);
+                    impacts.push(impactType as ImpactType);
                     break;
                 }
             }

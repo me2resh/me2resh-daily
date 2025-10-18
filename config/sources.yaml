@@ -2,9 +2,9 @@
 # This file defines all sources to scan, organized by topic
 
 email:
-  to_address: "${TO_EMAIL_ADDRESS}"  # Set via environment variable
+  to_address: "${TO_EMAIL_ADDRESS}"  # Set via environment variable (ahmed.abdelaliem@gmail.com)
   from_address: "${FROM_EMAIL_ADDRESS}"  # Set via environment variable
-  subject_prefix: "Zavva Platform & Architecture Daily"
+  subject_prefix: "Platform & Architecture Daily"
 
 scan_config:
   timezone: "Europe/London"

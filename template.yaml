@@ -22,10 +22,11 @@ Parameters:
 
   ScheduleExpression:
     Type: String
-    Description: CloudWatch Events / EventBridge Scheduler expression (default 05:00 Europe/London)
-    # Quartz-style (6 fields) or rate(). Keep it quoted to protect '?'.
+    Description: EventBridge Scheduler/CloudWatch Events expression (default 05:00 Europe/London)
+    # Keep this quoted so '?' survives shells/CI.
     Default: "cron(0 5 * * ? *)"
-    AllowedPattern: '^((rate\\(\\d+ (minute|minutes|hour|hours|day|days)\\))|(cron\\([^)]+\\)))$'
+    # IMPORTANT: Use single quotes and single backslashes for CloudFormation regex.
+    AllowedPattern: '^((rate\(\d+ (minute|minutes|hour|hours|day|days)\))|(cron\([^)]+\)))$'
 
 Globals:
   Function:
@@ -63,16 +64,13 @@ Resources:
         DailySchedule:
           Type: ScheduleV2
           Properties:
-            # Required by Scheduler
             ScheduleExpression: !Ref ScheduleExpression
             ScheduleExpressionTimezone: Europe/London
             FlexibleTimeWindow:
-              Mode: "OFF"                # must be quoted (YAML 1.1 turns OFF into false)
-            # Optional but nice to have
+              Mode: "OFF"            # must be quoted in YAML 1.1
             Name: Me2reshDailyScanSchedule
             Description: Triggers daily scan at 05:00 Europe/London
-            State: ENABLED               # accepted values: ENABLED | DISABLED
-            # You can add RetryPolicy/DeadLetterConfig later if needed
+            State: ENABLED
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  me2resh-daily
+  Daily executive intelligence scan that aggregates platform, architecture, and security updates
+
+Parameters:
+  ToEmailAddress:
+    Type: String
+    Description: Email address to send daily reports to
+    Default: ""
+
+  FromEmailAddress:
+    Type: String
+    Description: Verified SES email address to send from
+    Default: ""
+
+  OpenAIApiKey:
+    Type: String
+    Description: OpenAI API key for ChatGPT analysis
+    NoEcho: true
+
+  ScheduleExpression:
+    Type: String
+    Description: CloudWatch Events schedule expression (default is 5:00 AM Europe/London)
+    Default: "cron(0 5 * * ? *)"
+
+Globals:
+  Function:
+    Timeout: 900  # 15 minutes for scanning multiple sources
+    Tracing: Active
+    MemorySize: 512
+    Runtime: nodejs18.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TO_EMAIL_ADDRESS: !Ref ToEmailAddress
+        FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
+        OPENAI_API_KEY: !Ref OpenAIApiKey
+        AWS_REGION: !Ref AWS::Region
+
+Resources:
+  DailyScanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: daily-scan.lambdaHandler
+      Description: Performs daily scan of platform and architecture sources
+      Policies:
+        - SESCrudPolicy:
+            IdentityName: !Ref FromEmailAddress
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref ScheduleExpression
+            Name: Me2reshDailyScanSchedule
+            Description: Triggers daily scan at 05:00 Europe/London
+            Enabled: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/command/lambda/daily-scan.ts
+        External:
+          - '@aws-sdk/*'
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Join:
+          - ''
+          - - ApplicationInsights-SAM-
+            - Ref: AWS::StackName
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Fn::Join:
+          - ''
+          - - ApplicationInsights-SAM-
+            - Ref: AWS::StackName
+      AutoConfigurationEnabled: 'true'
+    DependsOn: ApplicationResourceGroup
+
+Outputs:
+  DailyScanFunction:
+    Description: Daily Scan Lambda Function ARN
+    Value: !GetAtt DailyScanFunction.Arn
+
+  DailyScanFunctionRole:
+    Description: IAM Role created for Daily Scan function
+    Value: !GetAtt DailyScanFunctionRole.Arn
+
+  ScheduleExpression:
+    Description: CloudWatch Events schedule expression
+    Value: !Ref ScheduleExpression

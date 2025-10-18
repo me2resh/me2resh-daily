@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.aws-sam/
+samconfig.toml
+.env
+
+# Logs
+*.log
+error.log
+combined.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Build artifacts
+*.zip

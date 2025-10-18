@@ -72,25 +72,9 @@ export class OpenAIReportGenerator implements ReportGenerator {
     }
 
     private buildPrompt(params: ReportGenerationInput): string {
-        const { date, timezone, items } = params;
+        const { date, timezone } = params;
 
-        const feedsForPrompt = items.map((item) => ({
-            title: item.title,
-            source: item.source,
-            source_url: item.source_url,
-            published_at: item.published_at,
-            topic: item.topic,
-            category: item.category,
-            priority: item.priority,
-            source_type: item.source_type,
-        }));
-
-        return `${
-            this.promptContent
-        }\n\nCurrent scan date: ${date}\nTimezone: ${timezone}\n\nCollected feed items (JSON array):\n${JSON.stringify(
-            feedsForPrompt,
-            null,
-            2,
-        )}\n\nReturn the JSON object described above. Do not include any commentary.`;
+        // Just send the prompt - ChatGPT will fetch sources itself
+        return `${this.promptContent}\n\nCurrent scan date: ${date}\nTimezone: ${timezone}\n\nPlease fetch and analyze the sources as described above, then return the JSON object. Do not include any commentary, just the JSON.`;
     }
 }

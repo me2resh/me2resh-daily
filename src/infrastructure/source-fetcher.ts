@@ -43,7 +43,15 @@ export class HttpSourceFetcher implements SourceFetcher {
                     return [];
             }
         } catch (error) {
-            logger.error('Failed to fetch source', { error, source: source.name });
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            logger.error('Failed to fetch source', {
+                source: source.name,
+                error: errorMessage,
+                stack: errorStack,
+                sourceType: source.type,
+                sourceUrl: source.url,
+            });
             // Return empty array on error to not block other sources
             return [];
         }

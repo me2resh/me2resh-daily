@@ -62,12 +62,14 @@ export class HttpSourceFetcher implements SourceFetcher {
                 const isoDate = item.isoDate || item.pubDate;
                 const publishedAt = isoDate ? new Date(isoDate) : new Date();
 
-                return {
+                const feedItem: RawFeed = {
                     title: item.title?.trim() || `${source.name} update`,
                     source: source.name,
                     source_url: item.link || rssUrl,
                     published_at: publishedAt.toISOString(),
-                } satisfies RawFeed;
+                };
+
+                return feedItem;
             })
             .filter((feedItem) => {
                 const publishedAtTime = new Date(feedItem.published_at).getTime();

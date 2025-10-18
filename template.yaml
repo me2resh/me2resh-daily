@@ -22,12 +22,14 @@ Parameters:
 
   ScheduleExpression:
     Type: String
-    Description: CloudWatch Events schedule expression (default is 5:00 AM Europe/London)
+    Description: CloudWatch Events / EventBridge Scheduler expression (default 05:00 Europe/London)
+    # Quartz-style (6 fields) or rate(). Keep it quoted to protect '?'.
     Default: "cron(0 5 * * ? *)"
+    AllowedPattern: '^((rate\\(\\d+ (minute|minutes|hour|hours|day|days)\\))|(cron\\([^)]+\\)))$'
 
 Globals:
   Function:
-    Timeout: 900  # 15 minutes for scanning multiple sources
+    Timeout: 900
     Tracing: Active
     MemorySize: 512
     Runtime: nodejs18.x
@@ -38,7 +40,6 @@ Globals:
         TO_EMAIL_ADDRESS: !Ref ToEmailAddress
         FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
         OPENAI_API_KEY: !Ref OpenAIApiKey
-        # AWS_REGION is automatically set by Lambda - no need to define it
 
 Resources:
   DailyScanFunction:
@@ -62,13 +63,16 @@ Resources:
         DailySchedule:
           Type: ScheduleV2
           Properties:
+            # Required by Scheduler
             ScheduleExpression: !Ref ScheduleExpression
             ScheduleExpressionTimezone: Europe/London
+            FlexibleTimeWindow:
+              Mode: "OFF"                # must be quoted (YAML 1.1 turns OFF into false)
+            # Optional but nice to have
             Name: Me2reshDailyScanSchedule
             Description: Triggers daily scan at 05:00 Europe/London
-            State: ENABLED
-            FlexibleTimeWindow:
-              Mode: "OFF"
+            State: ENABLED               # accepted values: ENABLED | DISABLED
+            # You can add RetryPolicy/DeadLetterConfig later if needed
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -80,29 +84,6 @@ Resources:
         External:
           - '@aws-sdk/*'
 
-  # Application Insights resources removed - using CloudWatch Logs, Metrics, and X-Ray instead
-  # ApplicationResourceGroup:
-  #   Type: AWS::ResourceGroups::Group
-  #   Properties:
-  #     Name:
-  #       Fn::Join:
-  #         - ''
-  #         - - ApplicationInsights-SAM-
-  #           - Ref: AWS::StackName
-  #     ResourceQuery:
-  #       Type: CLOUDFORMATION_STACK_1_0
-
-  # ApplicationInsightsMonitoring:
-  #   Type: AWS::ApplicationInsights::Application
-  #   Properties:
-  #     ResourceGroupName:
-  #       Fn::Join:
-  #         - ''
-  #         - - ApplicationInsights-SAM-
-  #           - Ref: AWS::StackName
-  #     AutoConfigurationEnabled: 'true'
-  #   DependsOn: ApplicationResourceGroup
-
 Outputs:
   DailyScanFunction:
     Description: Daily Scan Lambda Function ARN
@@ -112,6 +93,6 @@ Outputs:
     Description: IAM Role created for Daily Scan function
     Value: !GetAtt DailyScanFunctionRole.Arn
 
-  ScheduleExpression:
-    Description: CloudWatch Events schedule expression
+  ScheduleExpressionOut:
+    Description: EventBridge Scheduler expression in use
     Value: !Ref ScheduleExpression

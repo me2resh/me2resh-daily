@@ -18,7 +18,6 @@ export class ScanService {
         });
 
         const scanDate = new Date().toISOString().split('T')[0];
-        const allFeeds: RawFeed[] = [];
         const generationItems: ReportGenerationItem[] = [];
 
         for (const topic of this.config.topics) {
@@ -30,7 +29,6 @@ export class ScanService {
                         source,
                         this.config.scan_config.lookback_hours,
                     );
-                    allFeeds.push(...feeds);
 
                     generationItems.push(
                         ...feeds.map((feed) =>
@@ -58,28 +56,15 @@ export class ScanService {
             items: generationItems,
         });
 
-        const finalResult: ScanResult = {
-            date: report.date || scanDate,
-            timezone: report.timezone || this.config.scan_config.timezone,
-            top_signals: report.top_signals || [],
-            trend_watchlist: report.trend_watchlist || [],
-            security_alerts: report.security_alerts || [],
-            aws_platform_changes: report.aws_platform_changes || [],
-            ai_trends: report.ai_trends || [],
-            corporate_hims_hers: report.corporate_hims_hers || [],
-            developer_experience: report.developer_experience || [],
-            raw_feed: report.raw_feed && report.raw_feed.length > 0 ? report.raw_feed : allFeeds,
-        };
-
         logger.info('Scan completed', {
-            topSignals: finalResult.top_signals.length,
-            securityAlerts: finalResult.security_alerts.length,
-            awsChanges: finalResult.aws_platform_changes.length,
-            aiTrends: finalResult.ai_trends.length,
-            rawFeedItems: finalResult.raw_feed.length,
+            topSignals: report.top_signals?.length ?? 0,
+            securityAlerts: report.security_alerts?.length ?? 0,
+            awsChanges: report.aws_platform_changes?.length ?? 0,
+            aiTrends: report.ai_trends?.length ?? 0,
+            rawFeedItems: report.raw_feed?.length ?? 0,
         });
 
-        return finalResult;
+        return report;
     }
 
     private buildGenerationItem(

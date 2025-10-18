@@ -114,7 +114,7 @@ describe('ScanService', () => {
         expect(result).toEqual(expectedResult);
     });
 
-    it('falls back to collected raw feeds when generator omits raw_feed', async () => {
+    it('returns generator output even when raw_feed is empty', async () => {
         const config: SourceConfiguration = {
             ...baseConfig,
             topics: [
@@ -164,6 +164,6 @@ describe('ScanService', () => {
 
         const result = await service.performScan();
 
-        expect(result.raw_feed).toEqual(feeds['Security RSS']);
+        expect(result.raw_feed).toEqual([]);
     });
 });

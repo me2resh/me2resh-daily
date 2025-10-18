@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: eu-west-2
+  AWS_REGION: eu-west-1
   STACK_NAME: me2resh-daily-dev
   NODE_VERSION: '18'
 

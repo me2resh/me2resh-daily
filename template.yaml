@@ -60,12 +60,13 @@ Resources:
               Resource: '*'
       Events:
         DailySchedule:
-          Type: Schedule
+          Type: ScheduleV2
           Properties:
-            Schedule: !Ref ScheduleExpression
+            ScheduleExpression: !Ref ScheduleExpression
+            ScheduleExpressionTimezone: Europe/London
             Name: Me2reshDailyScanSchedule
             Description: Triggers daily scan at 05:00 Europe/London
-            Enabled: true
+            State: ENABLED
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

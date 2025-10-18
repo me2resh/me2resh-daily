@@ -47,12 +47,6 @@ Resources:
       LicenseInfo: MIT
       RetentionPolicy: Delete
 
-  DailyScanFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${DailyScanFunction}'
-      RetentionInDays: 14
-
   DailyScanFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -95,6 +89,14 @@ Resources:
           - src/command/lambda/daily-scan.ts
         External:
           - '@aws-sdk/*'
+
+  DailyScanFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: DailyScanFunction
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${DailyScanFunction}'
+      RetentionInDays: 14
+
 Outputs:
   DailyScanFunction:
     Description: Daily Scan Lambda Function ARN

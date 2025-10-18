@@ -68,7 +68,7 @@ Resources:
             Description: Triggers daily scan at 05:00 Europe/London
             State: ENABLED
             FlexibleTimeWindow:
-              Mode: OFF
+              Mode: "OFF"
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

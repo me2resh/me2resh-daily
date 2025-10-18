@@ -191,14 +191,17 @@ Extract CVE, CVSS, affected versions, fixes, exploitation notes.
 
 ⸻
 
-5. Corporate Intelligence — Hims & Hers
+5. Corporate Intelligence — Hims & Hers + UK Competitors
 	•	Investor Relations — https://investors.hims.com/news/default.aspx
 	•	SEC Filings (CIK 0001773751) — https://www.sec.gov/edgar/search/
 	•	Newsroom — https://news.hims.com/
 	•	Yahoo Finance / WSJ / MarketWatch (secondary)
+	•	ASDA Online Doctor — https://onlinedoctor.asda.com/ (UK competitor)
+	•	Zava — https://www.zavamed.com/uk/ (UK competitor)
 
 Extract:
-	•	Product launches, earnings, SEC filings, M&A, org moves, integration-relevant strategy.
+	•	Product launches, earnings, SEC filings, M&A, org moves, integration-relevant strategy
+	•	UK competitor product offerings, service expansions, pricing changes, regulatory updates
 
 ⸻
 
@@ -410,13 +413,15 @@ B) AI in healthcare & clinical pathways
 
 Extract: items that change clinical safety, validation, monitoring, explainability, or documentation obligations; note concrete dates.
 
-C) Corporate — Hims & Hers (parent)
+C) Corporate — Hims & Hers (parent) + UK Competitors
 	•	Investor Relations: Newsroom & financials: https://investors.hims.com/news/default.aspx and quarterly results page.  ￼
 	•	Newsroom: https://news.hims.com/ (product/strategy announcements).  ￼
 	•	SEC/EDGAR: search CIK 0001773751 (10-K, 10-Q, 8-K, 144): https://www.sec.gov/edgar/search/ → pull filings & material events. Example 2024 10-K.  ￼
 	•	Major press (context only if primary is thin): WSJ/MarketWatch/Yahoo Finance for product/market moves (e.g., menopause/perimenopause launch).  ￼
+	•	ASDA Online Doctor: https://onlinedoctor.asda.com/ → UK competitor service offerings, new treatments, pricing, press releases.  ￼
+	•	Zava: https://www.zavamed.com/uk/ → UK competitor service offerings, new treatments, pricing, press releases.  ￼
 
-Extract: earnings dates/guidance, product line expansions/contractions, regulatory disclosures, subscriber numbers, integration implications.
+Extract: earnings dates/guidance, product line expansions/contractions, regulatory disclosures, subscriber numbers, integration implications. For UK competitors: service expansions, new therapeutic areas, pricing strategy, regulatory compliance changes.
 
 D) AWS & platform engineering (serverless/K8s/DX)
 	•	What’s New at AWS (with RSS): https://aws.amazon.com/new/ → service launches/feature changes.  ￼

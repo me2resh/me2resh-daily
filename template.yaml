@@ -46,6 +46,13 @@ Resources:
       CompatibleRuntimes: [ nodejs18.x ]
       LicenseInfo: MIT
       RetentionPolicy: Delete
+
+  DailyScanFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${DailyScanFunction}'
+      RetentionInDays: 14
+
   DailyScanFunction:
     Type: AWS::Serverless::Function
     Properties:

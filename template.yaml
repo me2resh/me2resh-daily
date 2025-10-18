@@ -33,8 +33,18 @@ Globals:
         TO_EMAIL_ADDRESS: !Ref ToEmailAddress
         FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
         OPENAI_API_KEY: !Ref OpenAIApiKey
+        CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
 
 Resources:
+  DailyConfigLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: me2resh-daily-config
+      Description: Static configuration for me2resh-daily (sources.yaml)
+      ContentUri: layer-config/                # repo path: layer-config/config/sources.yaml
+      CompatibleRuntimes: [ nodejs18.x ]
+      LicenseInfo: MIT
+      RetentionPolicy: Delete
   DailyScanFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -52,6 +62,9 @@ Resources:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
               Resource: '*'
+
+      Layers:
+        - !Ref DailyConfigLayer
       Events:
         DailySchedule:
           Type: ScheduleV2

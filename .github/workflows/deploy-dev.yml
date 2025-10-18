@@ -71,6 +71,7 @@ jobs:
           sam deploy \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }} \
+            --resolve-s3 \
             --parameter-overrides \
               ToEmailAddress=${{ secrets.TO_EMAIL_ADDRESS }} \
               FromEmailAddress=${{ secrets.FROM_EMAIL_ADDRESS }} \

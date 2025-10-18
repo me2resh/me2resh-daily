@@ -4,10 +4,7 @@ import { ReportGenerator } from '@/infrastructure/report-generator';
 import { logger } from '@/utils/logger';
 
 export class ScanService {
-    constructor(
-        private config: SourceConfiguration,
-        private reportGenerator: ReportGenerator,
-    ) {}
+    constructor(private config: SourceConfiguration, private reportGenerator: ReportGenerator) {}
 
     async performScan(): Promise<ScanResult> {
         logger.info('Starting daily scan', {

@@ -87,9 +87,6 @@ Resources:
           - src/command/lambda/daily-scan.ts
         External:
           - '@aws-sdk/*'
-        CopyFiles:
-          - source: config/sources.yaml
-            destination: config/sources.yaml
 Outputs:
   DailyScanFunction:
     Description: Daily Scan Lambda Function ARN

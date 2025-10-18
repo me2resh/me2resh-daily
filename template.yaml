@@ -34,6 +34,7 @@ Globals:
         FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
         OPENAI_API_KEY: !Ref OpenAIApiKey
         CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
+        REQUIREMENT_PATH: /opt/config/REQUIREMENTS.txt   # read from the layer
 
 Resources:
   DailyConfigLayer:

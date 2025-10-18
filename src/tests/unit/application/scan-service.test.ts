@@ -1,65 +1,57 @@
 import { ScanService } from '@/application/scan-service';
-import { SourceFetcher } from '@/infrastructure/source-fetcher';
 import { RawFeed, ScanResult } from '@/domain/scan-result';
 import { Source, SourceConfiguration } from '@/domain/source-config';
+import { ReportGenerationInput, ReportGenerator } from '@/infrastructure/report-generator';
+import { SourceFetcher } from '@/infrastructure/source-fetcher';
 
 class StubFetcher implements SourceFetcher {
     constructor(private readonly feedsBySource: Record<string, RawFeed[]>) {}
 
-    async fetchSource(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
+    async fetchSource(source: Source, _lookbackHours?: number): Promise<RawFeed[]> {
         return this.feedsBySource[source.name] || [];
     }
 }
 
-const buildConfig = (overrides?: Partial<SourceConfiguration>): SourceConfiguration => ({
+class StubReportGenerator implements ReportGenerator {
+    public lastInput: ReportGenerationInput | null = null;
+
+    constructor(private readonly result: ScanResult) {}
+
+    async generateReport(input: ReportGenerationInput): Promise<ScanResult> {
+        this.lastInput = input;
+        return this.result;
+    }
+}
+
+const baseConfig: SourceConfiguration = {
     email: {
         to_address: 'to@example.com',
         from_address: 'from@example.com',
         subject_prefix: 'Test',
     },
     scan_config: {
-        timezone: 'UTC',
-        scan_time: '00:00',
+        timezone: 'Europe/London',
+        scan_time: '05:00',
         lookback_hours: 72,
     },
     topics: [],
     severity_rules: {
-        high: ['critical vulnerability'],
-        medium: ['update', 'release'],
-        low: ['advisory'],
+        high: [],
+        medium: [],
+        low: [],
     },
-    impact_keywords: {
-        Regulatory: ['regulation'],
-        Platform: ['aws'],
-        Security: ['vulnerability', 'cve'],
-        DX: ['developer'],
-        Cost: ['cost'],
-        'Org/Strategy': ['strategy'],
-    },
-    ...overrides,
-});
+    impact_keywords: {},
+};
 
 const isoNow = new Date().toISOString();
 
 describe('ScanService', () => {
-    it('categorizes feeds into the correct sections based on topic category', async () => {
-        const config = buildConfig({
+    it('passes aggregated feed metadata to the report generator', async () => {
+        const config: SourceConfiguration = {
+            ...baseConfig,
             topics: [
                 {
-                    name: 'Security Advisories',
-                    category: 'security',
-                    priority: 1,
-                    sources: [
-                        {
-                            name: 'Security RSS',
-                            url: 'https://security.example.com',
-                            type: 'rss',
-                            keywords: ['security'],
-                        },
-                    ],
-                },
-                {
-                    name: 'AWS Platform Updates',
+                    name: 'AWS Platform',
                     category: 'aws_platform',
                     priority: 1,
                     sources: [
@@ -67,77 +59,111 @@ describe('ScanService', () => {
                             name: 'AWS Blog',
                             url: 'https://aws.example.com',
                             type: 'rss',
-                            keywords: ['aws'],
-                        },
-                    ],
-                },
-                {
-                    name: 'FHIR Standards',
-                    category: 'standards',
-                    priority: 3,
-                    sources: [
-                        {
-                            name: 'Standards RSS',
-                            url: 'https://standards.example.com',
-                            type: 'rss',
-                            keywords: ['regulation'],
+                            keywords: [],
                         },
                     ],
                 },
             ],
-        });
+        };
 
-        const feedsBySource: Record<string, RawFeed[]> = {
-            'Security RSS': [
-                {
-                    title: 'Critical vulnerability CVE-2025-1234 disclosed',
-                    source: 'Security RSS',
-                    source_url: 'https://security.example.com/cve-2025-1234',
-                    published_at: isoNow,
-                },
-            ],
+        const feeds: Record<string, RawFeed[]> = {
             'AWS Blog': [
                 {
-                    title: 'AWS releases new update for Lambda developers',
+                    title: 'AWS launches new compute option',
                     source: 'AWS Blog',
-                    source_url: 'https://aws.example.com/lambda-update',
-                    published_at: isoNow,
-                },
-            ],
-            'Standards RSS': [
-                {
-                    title: 'New regulation update for HL7 standards',
-                    source: 'Standards RSS',
-                    source_url: 'https://standards.example.com/regulation',
+                    source_url: 'https://aws.example.com/compute',
                     published_at: isoNow,
                 },
             ],
         };
 
-        const fetcher = new StubFetcher(feedsBySource);
-        const service = new ScanService(config, fetcher);
+        const expectedResult: ScanResult = {
+            date: '2025-01-01',
+            timezone: 'Europe/London',
+            top_signals: [],
+            trend_watchlist: [],
+            security_alerts: [],
+            aws_platform_changes: [],
+            ai_trends: [],
+            corporate_hims_hers: [],
+            developer_experience: [],
+            raw_feed: [
+                {
+                    title: 'Generator override',
+                    source: 'LLM',
+                    source_url: 'https://example.com',
+                    published_at: isoNow,
+                },
+            ],
+        };
 
-        const result: ScanResult = await service.performScan();
+        const fetcher = new StubFetcher(feeds);
+        const generator = new StubReportGenerator(expectedResult);
+        const service = new ScanService(config, fetcher, generator);
 
-        expect(result.raw_feed).toHaveLength(3);
-        expect(result.security_alerts).toHaveLength(1);
-        expect(result.security_alerts[0]).toMatchObject({
-            component: 'Security RSS',
-            cve: 'CVE-2025-1234',
+        const result = await service.performScan();
+
+        expect(generator.lastInput).not.toBeNull();
+        expect(generator.lastInput?.items).toHaveLength(1);
+        expect(generator.lastInput?.items[0]).toMatchObject({
+            topic: 'AWS Platform',
+            category: 'aws_platform',
+            source: 'AWS Blog',
         });
 
-        expect(result.aws_platform_changes).toHaveLength(1);
-        expect(result.aws_platform_changes[0]).toMatchObject({
-            service: 'AWS Blog',
-        });
+        expect(result).toEqual(expectedResult);
+    });
 
-        expect(result.top_signals.length).toBeGreaterThanOrEqual(1);
-        expect(result.top_signals[0].impact).toContain('Security');
+    it('falls back to collected raw feeds when generator omits raw_feed', async () => {
+        const config: SourceConfiguration = {
+            ...baseConfig,
+            topics: [
+                {
+                    name: 'Security',
+                    category: 'security',
+                    priority: 1,
+                    sources: [
+                        {
+                            name: 'Security RSS',
+                            url: 'https://security.example.com',
+                            type: 'rss',
+                            keywords: [],
+                        },
+                    ],
+                },
+            ],
+        };
 
-        expect(result.trend_watchlist).toHaveLength(1);
-        expect(result.trend_watchlist[0]).toMatchObject({
-            topic: 'Standards',
-            trajectory: 'fading',
-        });
+        const feeds: Record<string, RawFeed[]> = {
+            'Security RSS': [
+                {
+                    title: 'New vulnerability discovered',
+                    source: 'Security RSS',
+                    source_url: 'https://security.example.com/vuln',
+                    published_at: isoNow,
+                },
+            ],
+        };
+
+        const generatorResult: ScanResult = {
+            date: '2025-02-02',
+            timezone: 'Europe/London',
+            top_signals: [],
+            trend_watchlist: [],
+            security_alerts: [],
+            aws_platform_changes: [],
+            ai_trends: [],
+            corporate_hims_hers: [],
+            developer_experience: [],
+            raw_feed: [],
+        };
+
+        const fetcher = new StubFetcher(feeds);
+        const generator = new StubReportGenerator(generatorResult);
+        const service = new ScanService(config, fetcher, generator);
+
+        const result = await service.performScan();
+
+        expect(result.raw_feed).toEqual(feeds['Security RSS']);
     });
 });

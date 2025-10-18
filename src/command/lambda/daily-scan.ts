@@ -3,10 +3,12 @@ import { ConfigLoader } from '@/utils/config-loader';
 import { ScanService } from '@/application/scan-service';
 import { HttpSourceFetcher } from '@/infrastructure/source-fetcher';
 import { SESEmailSender } from '@/infrastructure/email-sender';
+import { OpenAIReportGenerator } from '@/infrastructure/openai-report-generator';
 import { logger } from '@/utils/logger';
 
 const configLoader = ConfigLoader.getInstance();
 const sourceFetcher = new HttpSourceFetcher();
+const reportGenerator = new OpenAIReportGenerator();
 const emailSender = new SESEmailSender();
 
 export const lambdaHandler = async (event: ScheduledEvent): Promise<void> => {
@@ -24,7 +26,7 @@ export const lambdaHandler = async (event: ScheduledEvent): Promise<void> => {
         });
 
         // Perform the scan
-        const scanService = new ScanService(config, sourceFetcher);
+        const scanService = new ScanService(config, sourceFetcher, reportGenerator);
         const scanResult = await scanService.performScan();
 
         logger.info('Scan completed successfully', {

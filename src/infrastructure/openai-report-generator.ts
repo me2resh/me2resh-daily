@@ -17,7 +17,7 @@ export class OpenAIReportGenerator implements ReportGenerator {
         }
 
         const envPromptPath =
-            process.env.REQUIREMENTS_PATH || process.env.OPENAI_PROMPT_PATH || process.env.PROMPT_PATH;
+            process.env.REQUIREMENT_PATH || process.env.OPENAI_PROMPT_PATH || process.env.PROMPT_PATH;
         const resolvedPromptPath =
             promptPath || envPromptPath || path.join(__dirname, '../../REQUIREMENTS.txt');
 

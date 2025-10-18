@@ -159,7 +159,9 @@ export class ScanService {
 
     private extractAiTrends(feeds: CategorizedFeed[]) {
         logger.info('Extracting AI trends from feeds', { feedCount: feeds.length });
-        const aiFeeds = feeds.filter((feed) => feed.category === 'ai_healthcare' || feed.category === 'ai_platform');
+        const aiFeeds = feeds.filter(
+            (feed) => feed.category === 'ai_healthcare' || feed.category === 'ai_platform',
+        );
 
         return aiFeeds.map((feed) => {
             const aiCategory: AiTrendCategory = feed.category === 'ai_healthcare' ? 'clinical' : 'platform';
@@ -195,7 +197,9 @@ export class ScanService {
         return dxFeeds.map((feed) => ({
             pattern_or_tool: feed.title,
             update: this.buildWhyItMatters(feed),
-            relevance_to_platform: `Sourced from ${feed.source}. ${feed.severity.toUpperCase()} priority insight.`,
+            relevance_to_platform: `Sourced from ${
+                feed.source
+            }. ${feed.severity.toUpperCase()} priority insight.`,
         }));
     }
 
@@ -223,7 +227,8 @@ export class ScanService {
         }
 
         return Array.from(grouped.entries()).map(([category, items]) => {
-            const trajectory: TrendTrajectory = items.length > 3 ? 'rising' : items.length > 1 ? 'stable' : 'fading';
+            const trajectory: TrendTrajectory =
+                items.length > 3 ? 'rising' : items.length > 1 ? 'stable' : 'fading';
 
             return {
                 topic: this.formatCategoryName(category),
@@ -306,10 +311,19 @@ export class ScanService {
 
     private inferCorporateType(title: string): 'press' | 'filing' | 'earnings' | 'media' {
         const normalizedTitle = title.toLowerCase();
-        if (normalizedTitle.includes('10-k') || normalizedTitle.includes('10-q') || normalizedTitle.includes('8-k') || normalizedTitle.includes('filing')) {
+        if (
+            normalizedTitle.includes('10-k') ||
+            normalizedTitle.includes('10-q') ||
+            normalizedTitle.includes('8-k') ||
+            normalizedTitle.includes('filing')
+        ) {
             return 'filing';
         }
-        if (normalizedTitle.includes('earnings') || normalizedTitle.includes('results') || normalizedTitle.includes('quarter')) {
+        if (
+            normalizedTitle.includes('earnings') ||
+            normalizedTitle.includes('results') ||
+            normalizedTitle.includes('quarter')
+        ) {
             return 'earnings';
         }
         if (normalizedTitle.includes('press') || normalizedTitle.includes('launch')) {

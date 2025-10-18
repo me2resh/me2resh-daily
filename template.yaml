@@ -20,14 +20,6 @@ Parameters:
     Description: OpenAI API key for ChatGPT analysis
     NoEcho: true
 
-  ScheduleExpression:
-    Type: String
-    Description: EventBridge Scheduler/CloudWatch Events expression (default 05:00 Europe/London)
-    # Keep this quoted so '?' survives shells/CI.
-    Default: "cron(0 5 * * ? *)"
-    # IMPORTANT: Use single quotes and single backslashes for CloudFormation regex.
-    AllowedPattern: '^((rate\(\d+ (minute|minutes|hour|hours|day|days)\))|(cron\([^)]+\)))$'
-
 Globals:
   Function:
     Timeout: 900
@@ -64,10 +56,11 @@ Resources:
         DailySchedule:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: !Ref ScheduleExpression
+            # Run at 05:00 Europe/London every day (Quartz cron)
+            ScheduleExpression: "cron(0 5 * * ? *)"
             ScheduleExpressionTimezone: Europe/London
             FlexibleTimeWindow:
-              Mode: "OFF"            # must be quoted in YAML 1.1
+              Mode: "OFF"            # must be quoted: YAML 1.1 would coerce OFF->false
             Name: Me2reshDailyScanSchedule
             Description: Triggers daily scan at 05:00 Europe/London
             State: ENABLED
@@ -92,5 +85,5 @@ Outputs:
     Value: !GetAtt DailyScanFunctionRole.Arn
 
   ScheduleExpressionOut:
-    Description: EventBridge Scheduler expression in use
-    Value: !Ref ScheduleExpression
+    Description: Deployed EventBridge Scheduler expression
+    Value: "cron(0 5 * * ? *)"

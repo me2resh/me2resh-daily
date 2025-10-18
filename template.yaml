@@ -47,12 +47,21 @@ Resources:
       LicenseInfo: MIT
       RetentionPolicy: Delete
 
+  DailyScanFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/me2resh-daily-dev-DailyScanFunction
+      RetentionInDays: 14
+
   DailyScanFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
       Handler: daily-scan.lambdaHandler
       Description: Performs daily scan of platform and architecture sources
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Ref DailyScanFunctionLogGroup
       Policies:
         - SESCrudPolicy:
             IdentityName: !Ref FromEmailAddress
@@ -89,13 +98,6 @@ Resources:
           - src/command/lambda/daily-scan.ts
         External:
           - '@aws-sdk/*'
-
-  DailyScanFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    DependsOn: DailyScanFunction
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${DailyScanFunction}'
-      RetentionInDays: 14
 
 Outputs:
   DailyScanFunction:

@@ -9,7 +9,7 @@ export class ConfigLoader {
     private config: SourceConfiguration | null = null;
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    private constructor() { }
+    private constructor() {}
 
     static getInstance(): ConfigLoader {
         if (!ConfigLoader.instance) {
@@ -25,8 +25,8 @@ export class ConfigLoader {
 
         const finalPath =
             configPath ||
-            process.env.CONFIG_PATH ||                  // e.g. /opt/config/sources.yaml
-            path.join(__dirname, "../../config/sources.yaml");
+            process.env.CONFIG_PATH || // e.g. /opt/config/sources.yaml
+            path.join(__dirname, '../../config/sources.yaml');
         try {
             const fileContents = fs.readFileSync(finalPath, 'utf8');
             const rawConfig = yaml.load(fileContents) as SourceConfiguration;

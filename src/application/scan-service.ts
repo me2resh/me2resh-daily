@@ -33,7 +33,13 @@ export class ScanService {
 
                     generationItems.push(
                         ...feeds.map((feed) =>
-                            this.buildGenerationItem(feed, topic.category, topic.name, topic.priority, source),
+                            this.buildGenerationItem(
+                                feed,
+                                topic.category,
+                                topic.name,
+                                topic.priority,
+                                source,
+                            ),
                         ),
                     );
 

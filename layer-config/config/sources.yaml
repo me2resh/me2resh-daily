@@ -359,11 +359,15 @@ perplexity_research:
     - category: "FHIR, HL7, and Healthcare Interoperability"
       sources:
         - "HL7 official blog and HL7 News publication"
+        - "HL7 Confluence meeting minutes: https://confluence.hl7.org/spaces/HL7/pages/524292/"
         - "NHS England Digital FHIR APIs"
         - "ONC TEFCA FHIR roadmap"
         - "CMS FHIR spotlight and burden reduction"
       extract:
         - "FHIR ballot updates and implementation guides"
+        - "HL7 working group meeting minutes and decisions"
+        - "Technical Steering Committee and Board meeting outcomes"
+        - "FHIR specification changes and ballot status"
         - "NHS API changes and interoperability guidance"
         - "TEFCA exchange requirements"
         - "UK-specific FHIR implementations"

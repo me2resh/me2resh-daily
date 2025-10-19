@@ -2,9 +2,16 @@ import Parser from 'rss-parser';
 import { Source } from '@/domain/source-config';
 import { RawFeed } from '@/domain/scan-result';
 import { logger } from '@/utils/logger';
+import { validateUrl, canonicalizeUrl, isDomainAllowed } from '@/utils/url-validator';
 
 export interface SourceFetcher {
     fetchSource(source: Source, lookbackHours: number): Promise<RawFeed[]>;
+}
+
+export interface ValidatedRawFeed extends RawFeed {
+    domain: string;
+    status_code: number;
+    checked_at: string;
 }
 
 type RssItem = {
@@ -12,36 +19,34 @@ type RssItem = {
     link?: string;
     pubDate?: string;
     isoDate?: string;
+    contentSnippet?: string;
 };
 
 export class HttpSourceFetcher implements SourceFetcher {
     private rssParser: Parser;
 
     constructor() {
-        this.rssParser = new Parser<RssItem>();
+        this.rssParser = new Parser<RssItem>({
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Me2resh-Daily-Scanner/1.0',
+            },
+        });
     }
 
-    async fetchSource(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    async fetchSource(source: Source, lookbackHours: number): Promise<ValidatedRawFeed[]> {
         try {
             logger.info('Fetching source', { name: source.name, type: source.type, url: source.url });
 
-            switch (source.type) {
-                case 'rss':
-                    return await this.fetchRssFeed(source, lookbackHours);
-                case 'html':
-                    return await this.fetchHtmlPage(source, lookbackHours);
-                case 'github_releases':
-                    return await this.fetchGitHubReleases(source, lookbackHours);
-                case 'github_advisories':
-                    return await this.fetchGitHubAdvisories(source, lookbackHours);
-                case 'nvd_api':
-                    return await this.fetchNVD(source, lookbackHours);
-                case 'cisa_api':
-                    return await this.fetchCISA(source, lookbackHours);
-                default:
-                    logger.warn('Unsupported source type', { type: source.type, name: source.name });
-                    return [];
+            if (source.type !== 'rss') {
+                logger.warn('Only RSS sources are supported in this version', {
+                    type: source.type,
+                    name: source.name,
+                });
+                return [];
             }
+
+            return await this.fetchRssFeed(source, lookbackHours);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorStack = error instanceof Error ? error.stack : undefined;
@@ -57,64 +62,121 @@ export class HttpSourceFetcher implements SourceFetcher {
         }
     }
 
-    private async fetchRssFeed(source: Source, lookbackHours: number): Promise<RawFeed[]> {
+    private async fetchRssFeed(source: Source, lookbackHours: number): Promise<ValidatedRawFeed[]> {
         const rssUrl = source.rss_url || source.url;
 
         logger.info('Fetching RSS feed', { source: source.name, url: rssUrl });
 
-        const feed = await this.rssParser.parseURL(rssUrl);
-        const cutoffTime = Date.now() - lookbackHours * 60 * 60 * 1000;
+        try {
+            const feed = await this.rssParser.parseURL(rssUrl);
+            const cutoffTime = Date.now() - lookbackHours * 60 * 60 * 1000;
 
-        return (feed.items || [])
-            .map((item) => {
-                const isoDate = item.isoDate || item.pubDate;
-                const publishedAt = isoDate ? new Date(isoDate) : new Date();
-
-                const feedItem: RawFeed = {
-                    title: item.title?.trim() || `${source.name} update`,
-                    source: source.name,
-                    source_url: item.link || rssUrl,
-                    published_at: publishedAt.toISOString(),
-                };
-
-                return feedItem;
-            })
-            .filter((feedItem) => {
-                const publishedAtTime = new Date(feedItem.published_at).getTime();
-                if (Number.isNaN(publishedAtTime)) {
-                    return true;
-                }
-                return publishedAtTime >= cutoffTime;
+            logger.info('RSS feed fetched', {
+                source: source.name,
+                itemCount: feed.items?.length || 0,
+                title: feed.title,
             });
+
+            // Process items in parallel
+            const feedItems = await Promise.all(
+                (feed.items || []).slice(0, 50).map(async (item) => {
+                    try {
+                        return await this.processRssItem(item, source, cutoffTime);
+                    } catch (error) {
+                        logger.warn('Failed to process RSS item', {
+                            source: source.name,
+                            itemTitle: item.title,
+                            error: error instanceof Error ? error.message : String(error),
+                        });
+                        return null;
+                    }
+                }),
+            );
+
+            // Filter out null items and items that failed validation
+            const validItems = feedItems.filter(
+                (item): item is ValidatedRawFeed =>
+                    item !== null && item.status_code === 200 && isDomainAllowed(item.source_url),
+            );
+
+            logger.info('RSS feed processed', {
+                source: source.name,
+                totalItems: feed.items?.length || 0,
+                validItems: validItems.length,
+                rejected: feedItems.length - validItems.length,
+            });
+
+            return validItems;
+        } catch (error) {
+            logger.error('Failed to parse RSS feed', {
+                source: source.name,
+                url: rssUrl,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return [];
+        }
     }
 
-    private async fetchHtmlPage(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
-        // Implementation placeholder - requires HTML parser and scraping logic
-        logger.info('HTML fetching not yet implemented', { source: source.name });
-        return [];
-    }
+    private async processRssItem(
+        item: RssItem,
+        source: Source,
+        cutoffTime: number,
+    ): Promise<ValidatedRawFeed | null> {
+        // Extract basic info
+        const rawLink = item.link || source.url;
+        const isoDate = item.isoDate || item.pubDate;
+        const publishedAt = isoDate ? new Date(isoDate) : new Date();
 
-    private async fetchGitHubReleases(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
-        // Implementation placeholder - requires GitHub API client
-        logger.info('GitHub releases fetching not yet implemented', { source: source.name });
-        return [];
-    }
+        // Check freshness first (before expensive URL validation)
+        const publishedAtTime = publishedAt.getTime();
+        if (!Number.isNaN(publishedAtTime) && publishedAtTime < cutoffTime) {
+            logger.debug('Item too old, skipping', {
+                source: source.name,
+                title: item.title,
+                publishedAt: publishedAt.toISOString(),
+            });
+            return null;
+        }
 
-    private async fetchGitHubAdvisories(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
-        // Implementation placeholder - requires GitHub API client
-        logger.info('GitHub advisories fetching not yet implemented', { source: source.name });
-        return [];
-    }
+        // Canonicalize URL
+        const canonicalUrl = canonicalizeUrl(rawLink);
 
-    private async fetchNVD(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
-        // Implementation placeholder - requires NVD API client
-        logger.info('NVD fetching not yet implemented', { source: source.name });
-        return [];
-    }
+        // Quick allowlist check before HTTP validation
+        if (!isDomainAllowed(canonicalUrl)) {
+            logger.debug('URL not in allowlist, skipping', {
+                source: source.name,
+                url: canonicalUrl,
+            });
+            return null;
+        }
 
-    private async fetchCISA(source: Source, _lookbackHours: number): Promise<RawFeed[]> {
-        // Implementation placeholder - requires CISA API client
-        logger.info('CISA fetching not yet implemented', { source: source.name });
-        return [];
+        // Validate URL with HTTP HEAD check
+        const validation = await validateUrl(canonicalUrl);
+
+        if (!validation.isValid) {
+            logger.debug('URL validation failed', {
+                source: source.name,
+                url: canonicalUrl,
+                status: validation.status,
+                error: validation.error,
+            });
+            return null;
+        }
+
+        // Extract domain
+        const domain = new URL(canonicalUrl).hostname;
+
+        // Build validated feed item
+        const feedItem: ValidatedRawFeed = {
+            title: item.title?.trim() || `${source.name} update`,
+            source: source.name,
+            source_url: validation.url, // Use validated/canonical URL
+            published_at: publishedAt.toISOString(),
+            domain,
+            status_code: validation.status,
+            checked_at: validation.checkedAt,
+        };
+
+        return feedItem;
     }
 }

@@ -3,9 +3,11 @@ import { ConfigLoader } from '@/utils/config-loader';
 import { ScanService } from '@/application/scan-service';
 import { SESEmailSender } from '@/infrastructure/email-sender';
 import { OpenAIReportGenerator } from '@/infrastructure/openai-report-generator';
+import { HttpSourceFetcher } from '@/infrastructure/source-fetcher';
 import { logger } from '@/utils/logger';
 
 const configLoader = ConfigLoader.getInstance();
+const sourceFetcher = new HttpSourceFetcher();
 const reportGenerator = new OpenAIReportGenerator();
 const emailSender = new SESEmailSender();
 
@@ -23,8 +25,8 @@ export const lambdaHandler = async (event: ScheduledEvent): Promise<void> => {
             emailTo: config.email.to_address,
         });
 
-        // Perform the scan - ChatGPT will do all the research
-        const scanService = new ScanService(config, reportGenerator);
+        // Perform the scan - Fetch RSS feeds then analyze with ChatGPT
+        const scanService = new ScanService(config, sourceFetcher, reportGenerator);
         const scanResult = await scanService.performScan();
 
         logger.info('Scan completed successfully', {

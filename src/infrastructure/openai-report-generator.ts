@@ -81,7 +81,10 @@ IMPORTANT INSTRUCTIONS:
     }
 
     private buildPrompt(params: ReportGenerationInput): string {
-        const { date, timezone } = params;
+        const { date, timezone, items } = params;
+
+        // Build raw_feed_input JSON
+        const rawFeedInputJson = JSON.stringify(items, null, 2);
 
         return `${this.promptContent}
 
@@ -91,13 +94,17 @@ TASK FOR TODAY:
 Current scan date: ${date}
 Timezone: ${timezone}
 
-Please perform the following:
-1. Research and fetch recent updates (last 48-72 hours) from the sources listed above
-2. Analyze the content according to the prioritization rules
-3. Extract and categorize findings into the JSON structure provided
-4. Ensure EVERY source_url is a specific article link, not a homepage
-5. Include ALL sections from the schema (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience, raw_feed)
-6. If a section has no items, include it as an empty array
+RAW_FEED_INPUT (Pre-validated items from RSS feeds):
+${rawFeedInputJson}
+
+IMPORTANT RULES:
+1. You MUST only cite URLs present in raw_feed_input above
+2. Do NOT invent, infer, or guess URLs
+3. If a needed URL is missing from raw_feed_input, omit that item
+4. For each top_signals, aws_platform_changes, ai_trends, etc. entry, set source_url to a URL exactly from raw_feed_input
+5. Include in the final raw_feed output only the subset of raw_feed_input items you actually used
+6. Include ALL sections from the schema (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience, raw_feed)
+7. If a section has no items from raw_feed_input, include it as an empty array
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;
     }

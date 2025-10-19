@@ -5,10 +5,9 @@ export interface ReportGenerationItem {
     source: string;
     source_url: string;
     published_at: string;
-    topic: string;
-    category: string;
-    priority: number;
-    source_type: string;
+    domain: string;
+    status_code: number;
+    checked_at: string;
 }
 
 export interface ReportGenerationInput {

@@ -1,270 +1,250 @@
-# Me2resh Daily Intel Scan - Source Configuration
-# This file defines all sources to scan, organized by topic
+# Me2resh Daily Intel Scan - Comprehensive RSS Source Catalogue
+# RSS-first approach: Only includes sources with working RSS/Atom feeds
+# Last updated: 2025-10-19
 
 email:
-  to_address: "${TO_EMAIL_ADDRESS}"  # Set via environment variable (ahmed.abdelaliem@gmail.com)
-  from_address: "${FROM_EMAIL_ADDRESS}"  # Set via environment variable
+  to_address: "${TO_EMAIL_ADDRESS}"
+  from_address: "${FROM_EMAIL_ADDRESS}"
   subject_prefix: "Platform & Architecture Daily"
 
 scan_config:
   timezone: "Europe/London"
   scan_time: "05:00"
-  lookback_hours: 72  # How far back to look for new items
+  lookback_hours: 72  # 72-hour freshness window
+  max_items_per_source: 20  # Limit items per source to control costs
 
 topics:
-  # 1. FHIR / HL7 / Interoperability Standards & UK Policy
-  - name: "FHIR and HL7 Standards"
-    category: "standards"
-    priority: 2
-    sources:
-      - name: "HL7 Official Blog"
-        url: "https://blog.hl7.org/"
-        type: "rss"
-        keywords: ["ballot", "implementation guide", "AI", "governance"]
-
-      - name: "HL7 News Publication"
-        url: "https://hl7news.hl7.org/"
-        type: "rss"
-        keywords: ["event", "program", "update"]
-
-      - name: "FHIR Foundation"
-        url: "https://fhir.org/"
-        type: "html"
-        keywords: ["community", "standard", "specification"]
-
-      - name: "NHS Digital FHIR APIs"
-        url: "https://digital.nhs.uk/services/fhir-apis"
-        type: "html"
-        keywords: ["API", "FHIR", "NHS"]
-
-      - name: "NHS England Interoperability"
-        url: "https://www.england.nhs.uk/long-read/interoperability/"
-        type: "html"
-        keywords: ["interoperability", "data sharing"]
-
-      - name: "ONC Health IT Blog"
-        url: "https://www.healthit.gov/buzz-blog/"
-        type: "rss"
-        keywords: ["TEFCA", "FHIR", "exchange"]
-
-      - name: "CMS FHIR Spotlight"
-        url: "https://www.cms.gov/priorities/burden-reduction/overview/spotlight"
-        type: "html"
-        keywords: ["FHIR", "interoperability"]
-
-      - name: "HL7 UK Blog"
-        url: "https://www.hl7.org.uk/category/blog/"
-        type: "rss"
-        keywords: ["UK", "implementation", "case study"]
-
-  # 2. AI in Healthcare & Clinical Pathways
-  - name: "AI in Healthcare"
+  # ============================================================================
+  # 1. AI IN HEALTHCARE & CLINICAL PATHWAYS
+  # ============================================================================
+  - name: "AI Healthcare - Clinical Journals"
     category: "ai_healthcare"
-    priority: 1  # Highest priority
+    priority: 1
     sources:
       - name: "NEJM AI"
         url: "https://ai.nejm.org/"
+        rss_url: "https://ai.nejm.org/feeds/latest.rss"
         type: "rss"
-        keywords: ["clinical AI", "safety", "deployment", "methods", "policy"]
 
       - name: "npj Digital Medicine"
         url: "https://www.nature.com/npjdigitalmed/"
+        rss_url: "https://www.nature.com/npjdigitalmed.rss"
         type: "rss"
-        keywords: ["implementation", "pathways", "diagnostics", "AI"]
 
-      - name: "Lancet Digital Health"
+      - name: "The Lancet Digital Health"
         url: "https://www.thelancet.com/journals/landig/home"
-        type: "rss"
         rss_url: "https://www.thelancet.com/content/rss"
-        keywords: ["digital health", "AI", "practice"]
+        type: "rss"
 
-      - name: "FDA AI/ML SaMD"
-        url: "https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device"
-        type: "html"
-        keywords: ["AI", "ML", "lifecycle", "marketing", "submission"]
-
-      - name: "MHRA Software & AI Medical Device"
-        url: "https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-artificial-intelligence-ai-as-a-medical-device"
-        type: "html"
-        keywords: ["UK", "guidance", "SaMD"]
-
-      - name: "EU AI Act Timeline"
-        url: "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai"
-        type: "html"
-        keywords: ["AI Act", "regulation", "GPAI", "high-risk", "medical"]
-
-  # 3. General AI & Platform
-  - name: "General AI & Platform"
+  - name: "AI Platforms & Vendors"
     category: "ai_platform"
     priority: 1
     sources:
-      - name: "TLDR Tech AI"
-        url: "https://tldr.tech/"
+      - name: "OpenAI News"
+        url: "https://openai.com/news/"
+        rss_url: "https://openai.com/news/rss.xml"
         type: "rss"
-        keywords: ["AI", "tooling", "platform"]
 
       - name: "Hugging Face Blog"
         url: "https://huggingface.co/blog"
+        rss_url: "https://huggingface.co/blog/feed.xml"
         type: "rss"
-        keywords: ["AI", "models", "infrastructure"]
 
-      - name: "AWS Bedrock Blog"
+      - name: "AWS Machine Learning Blog"
         url: "https://aws.amazon.com/blogs/machine-learning/"
+        rss_url: "https://feeds.feedburner.com/AmazonWebServicesBlogMachineLearning"
         type: "rss"
-        keywords: ["Bedrock", "AI", "AWS"]
 
-  # 4. Corporate Intelligence - Hims & Hers
-  - name: "Hims & Hers Corporate"
-    category: "corporate"
-    priority: 3
-    sources:
-      - name: "Hims & Hers Investor Relations"
-        url: "https://investors.hims.com/news/default.aspx"
-        type: "html"
-        keywords: ["earnings", "financial", "results"]
-
-      - name: "Hims & Hers Newsroom"
-        url: "https://news.hims.com/"
-        type: "html"
-        keywords: ["product", "launch", "strategy"]
-
-      - name: "SEC EDGAR Filings"
-        url: "https://www.sec.gov/edgar/search/#/entityName=Hims%20&%20Hers%20Health,%20Inc."
-        type: "html"
-        cik: "0001773751"
-        keywords: ["10-K", "10-Q", "8-K", "filing"]
-
-  # 5. AWS & Platform Engineering
-  - name: "AWS Platform"
+  # ============================================================================
+  # 2. AWS & SERVERLESS PLATFORM
+  # ============================================================================
+  - name: "AWS Official Feeds"
     category: "aws_platform"
     priority: 1
     sources:
       - name: "AWS What's New"
         url: "https://aws.amazon.com/new/"
+        rss_url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"
         type: "rss"
-        keywords: ["Lambda", "API Gateway", "EventBridge", "Step Functions", "DynamoDB"]
 
       - name: "AWS Security Bulletins"
         url: "https://aws.amazon.com/security/security-bulletins/"
+        rss_url: "https://aws.amazon.com/security/security-bulletins/feed/"
         type: "rss"
-        keywords: ["security", "vulnerability", "bulletin"]
-
-      - name: "Amazon Linux Security (ALAS)"
-        url: "https://alas.aws.amazon.com/"
-        type: "rss"
-        keywords: ["security", "update", "AL2", "AL2023"]
 
       - name: "AWS Compute Blog"
         url: "https://aws.amazon.com/blogs/compute/"
+        rss_url: "https://aws.amazon.com/blogs/compute/feed/"
         type: "rss"
-        keywords: ["Lambda", "serverless", "compute"]
 
       - name: "AWS Architecture Blog"
         url: "https://aws.amazon.com/blogs/architecture/"
+        rss_url: "https://aws.amazon.com/blogs/architecture/feed/"
         type: "rss"
-        keywords: ["architecture", "well-architected", "patterns"]
+
+      - name: "Lambda Release Notes"
+        url: "https://docs.aws.amazon.com/lambda/latest/dg/lambda-updates.html"
+        rss_url: "https://docs.aws.amazon.com/lambda/latest/dg/lambda-updates.rss"
+        type: "rss"
+
+      - name: "CloudFormation Release Notes"
+        url: "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/ReleaseHistory.html"
+        rss_url: "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/ReleaseHistory.rss"
+        type: "rss"
+
+  - name: "Serverless Ecosystem"
+    category: "serverless"
+    priority: 2
+    sources:
+      - name: "Serverless Land"
+        url: "https://serverlessland.com/"
+        rss_url: "https://serverlessland.com/feed.xml"
+        type: "rss"
+
+      - name: "Serverless Framework Blog"
+        url: "https://www.serverless.com/blog"
+        rss_url: "https://www.serverless.com/blog/rss"
+        type: "rss"
 
       - name: "CNCF Blog"
         url: "https://www.cncf.io/blog/"
+        rss_url: "https://www.cncf.io/feed/"
         type: "rss"
-        keywords: ["Kubernetes", "cloud native", "serverless"]
 
-      - name: "Backstage Blog (Spotify)"
-        url: "https://backstage.spotify.com/discover/blog/"
+  # ============================================================================
+  # 3. FHIR / HL7 / INTEROPERABILITY
+  # ============================================================================
+  - name: "FHIR & HL7 Standards"
+    category: "fhir_standards"
+    priority: 2
+    sources:
+      - name: "HL7 Blog"
+        url: "https://blog.hl7.org/"
+        rss_url: "https://blog.hl7.org/rss.xml"
         type: "rss"
-        keywords: ["developer portal", "platform", "DX"]
 
-      - name: "Backstage.io Blog"
-        url: "https://backstage.io/blog/"
+      - name: "Hay on FHIR (Community Blog)"
+        url: "https://fhirblog.com/"
+        rss_url: "https://fhirblog.com/feed/"
         type: "rss"
-        keywords: ["developer experience", "platform"]
 
-  # 6. Language & Framework Releases
-  - name: "Stack Releases"
+      - name: "ONC Health IT Buzz"
+        url: "https://www.healthit.gov/buzz-blog/"
+        rss_url: "https://www.healthit.gov/buzz-blog/feed"
+        type: "rss"
+
+  # ============================================================================
+  # 4. SECURITY ADVISORIES
+  # ============================================================================
+  - name: "Security & Vulnerabilities"
+    category: "security"
+    priority: 1
+    sources:
+      - name: "CVE Details - Latest CVEs"
+        url: "https://www.cvedetails.com/"
+        rss_url: "https://www.cvedetails.com/vulnerability-feeds-form.php"
+        type: "rss"
+
+      - name: "Tenable CVE Feeds"
+        url: "https://www.tenable.com/cve"
+        rss_url: "https://www.tenable.com/cve/feeds/newest"
+        type: "rss"
+
+  # ============================================================================
+  # 5. STACK RELEASES (GitHub Atom Feeds)
+  # ============================================================================
+  - name: "Language & Framework Releases"
     category: "releases"
     priority: 2
     sources:
       - name: "NestJS Releases"
         url: "https://github.com/nestjs/nest/releases"
-        type: "github_releases"
-        keywords: ["release", "breaking", "feature"]
+        rss_url: "https://github.com/nestjs/nest/releases.atom"
+        type: "rss"
 
       - name: "TypeScript Releases"
         url: "https://github.com/microsoft/TypeScript/releases"
-        type: "github_releases"
-        keywords: ["release", "breaking", "feature"]
-
-      - name: "Golang Blog"
-        url: "https://go.dev/blog/"
+        rss_url: "https://github.com/microsoft/TypeScript/releases.atom"
         type: "rss"
-        keywords: ["release", "version"]
+
+      - name: "Go Blog"
+        url: "https://go.dev/blog/"
+        rss_url: "https://go.dev/blog/feed.atom"
+        type: "rss"
 
       - name: "AWS SAM CLI Releases"
         url: "https://github.com/aws/aws-sam-cli/releases"
-        type: "github_releases"
-        keywords: ["release", "feature"]
+        rss_url: "https://github.com/aws/aws-sam-cli/releases.atom"
+        type: "rss"
 
-      - name: "AWS SAM Spec Releases"
+      - name: "AWS SAM Model Releases"
         url: "https://github.com/aws/serverless-application-model/releases"
-        type: "github_releases"
-        keywords: ["specification", "release"]
+        rss_url: "https://github.com/aws/serverless-application-model/releases.atom"
+        type: "rss"
 
       - name: "PHP Security Advisories"
         url: "https://github.com/php/php-src/security/advisories"
-        type: "github_advisories"
-        keywords: ["security", "vulnerability"]
+        rss_url: "https://github.com/php/php-src/security/advisories.atom"
+        type: "rss"
 
-  # 7. Security Advisories
-  - name: "Security Advisories"
-    category: "security"
-    priority: 1
-    sources:
-      - name: "NVD (National Vulnerability Database)"
-        url: "https://nvd.nist.gov/vuln"
-        type: "nvd_api"
-        filter: ["npm", "golang", "php", "aws"]
-        keywords: ["CVE", "vulnerability"]
-
-      - name: "CISA Known Exploited Vulnerabilities"
-        url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
-        type: "cisa_api"
-        keywords: ["exploited", "vulnerability"]
-
-      - name: "GitHub Advisory Database"
-        url: "https://github.com/advisories"
-        type: "github_advisories"
-        ecosystems: ["npm", "composer", "go"]
-        keywords: ["advisory", "security"]
-
-  # 8. Developer Experience & Trends
+  # ============================================================================
+  # 6. DEVELOPER EXPERIENCE & TRENDS
+  # ============================================================================
   - name: "Developer Experience"
     category: "developer_experience"
     priority: 3
     sources:
-      - name: "InfoQ"
-        url: "https://www.infoq.com/news/"
+      - name: "Backstage Spotify Blog"
+        url: "https://backstage.spotify.com/discover/blog/"
+        rss_url: "https://backstage.spotify.com/discover/blog/rss.xml"
         type: "rss"
-        keywords: ["architecture", "platform", "DevOps"]
+
+      - name: "InfoQ News"
+        url: "https://www.infoq.com/news/"
+        rss_url: "https://feed.infoq.com/"
+        type: "rss"
 
       - name: "The New Stack"
-        url: "https://thenewstack.io/rss-feeds/"
+        url: "https://thenewstack.io/"
+        rss_url: "https://thenewstack.io/feed/"
         type: "rss"
-        keywords: ["cloud native", "platform", "DX"]
 
-      - name: "ThoughtWorks Tech Radar"
-        url: "https://www.thoughtworks.com/radar"
-        type: "html"
-        keywords: ["radar", "trends", "adopt", "trial"]
-
-      - name: "Golang Weekly"
-        url: "https://golangweekly.com/"
+  # ============================================================================
+  # 7. INTERNATIONAL REGULATORS (RSS-enabled)
+  # ============================================================================
+  - name: "Healthcare Regulators"
+    category: "regulatory"
+    priority: 2
+    sources:
+      - name: "MHRA Yellow Card News"
+        url: "https://yellowcard.mhra.gov.uk/news"
+        rss_url: "https://yellowcard.mhra.gov.uk/news/rss"
         type: "rss"
-        keywords: ["golang", "library", "tool"]
 
-      - name: "TypeScript Weekly"
-        url: "https://typescript-weekly.com/"
+      - name: "EMA RSS Feeds"
+        url: "https://www.ema.europa.eu/en/news-events/rss-feeds"
+        rss_url: "https://www.ema.europa.eu/en/news-events/rss-feeds"
         type: "rss"
-        keywords: ["typescript", "library", "pattern"]
+
+      - name: "IMDRF RSS"
+        url: "https://www.imdrf.org/"
+        rss_url: "https://www.imdrf.org/rss-feeds"
+        type: "rss"
+
+      - name: "HAS (France) RSS"
+        url: "https://www.has-sante.fr/"
+        rss_url: "https://www.has-sante.fr/jcms/c_1771214/fr/nos-flux-d-information-rss"
+        type: "rss"
+
+      - name: "ANSM (France) RSS"
+        url: "https://ansm.sante.fr/"
+        rss_url: "https://ansm.sante.fr/page/flux-rss"
+        type: "rss"
+
+      - name: "CMS RSS Hub"
+        url: "https://www.cms.gov/"
+        rss_url: "https://www.cms.gov/about-cms/web-policies-important-links/rss-feeds"
+        type: "rss"
 
 # Severity rules for automatic classification
 severity_rules:
@@ -276,12 +256,15 @@ severity_rules:
     - "critical security"
     - "AWS service deprecation"
     - "major cost impact"
+    - "AI Act"
+    - "SaMD"
 
   medium:
     - "new feature"
     - "ecosystem shift"
     - "version upgrade"
     - "recommended update"
+    - "guidance"
 
   low:
     - "advisory"
@@ -298,6 +281,8 @@ impact_keywords:
     - "FDA"
     - "MHRA"
     - "AI Act"
+    - "SaMD"
+    - "medical device"
 
   Platform:
     - "AWS"
@@ -305,6 +290,7 @@ impact_keywords:
     - "architecture"
     - "infrastructure"
     - "deployment"
+    - "serverless"
 
   Security:
     - "CVE"
@@ -312,21 +298,25 @@ impact_keywords:
     - "security"
     - "exploit"
     - "patch"
+    - "advisory"
 
   DX:
     - "developer experience"
     - "tooling"
     - "productivity"
     - "workflow"
+    - "backstage"
 
   Cost:
     - "pricing"
     - "cost"
     - "optimization"
     - "savings"
+    - "budget"
 
   "Org/Strategy":
     - "strategy"
     - "organizational"
     - "M&A"
     - "earnings"
+    - "acquisition"

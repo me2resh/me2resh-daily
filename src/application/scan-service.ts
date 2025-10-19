@@ -2,6 +2,7 @@ import { ScanResult } from '@/domain/scan-result';
 import { SourceConfiguration } from '@/domain/source-config';
 import { ReportGenerator } from '@/infrastructure/report-generator';
 import { SourceFetcher, ValidatedRawFeed } from '@/infrastructure/source-fetcher';
+import { ResearchService } from './research-service';
 import { logger } from '@/utils/logger';
 
 export interface RawFeedInputItem {
@@ -19,6 +20,7 @@ export class ScanService {
         private config: SourceConfiguration,
         private sourceFetcher: SourceFetcher,
         private reportGenerator: ReportGenerator,
+        private researchService?: ResearchService,
     ) {}
 
     async performScan(): Promise<ScanResult> {
@@ -31,21 +33,48 @@ export class ScanService {
 
         // Step 1: Fetch all RSS feeds and validate URLs
         logger.info('Fetching RSS feeds from all sources');
-        const allItems = await this.fetchAllSources();
+        const rssItems = await this.fetchAllSources();
 
         logger.info('RSS feeds fetched', {
             totalSources: this.getTotalSourceCount(),
+            totalItems: rssItems.length,
+        });
+
+        // Step 2: Perform Perplexity research (if enabled)
+        let researchItems: ValidatedRawFeed[] = [];
+        if (this.researchService) {
+            logger.info('Performing Perplexity research');
+            const perplexityResults = await this.researchService.performResearch();
+
+            // Convert Perplexity items to ValidatedRawFeed format
+            researchItems = perplexityResults.map((item) => ({
+                ...item,
+                status_code: 200, // Perplexity citations are assumed valid
+                checked_at: new Date().toISOString(),
+            }));
+
+            logger.info('Perplexity research completed', {
+                researchItems: researchItems.length,
+            });
+        }
+
+        // Step 3: Merge RSS + Research items
+        const allItems = [...rssItems, ...researchItems];
+
+        logger.info('Combined RSS + Research items', {
+            rssItems: rssItems.length,
+            researchItems: researchItems.length,
             totalItems: allItems.length,
         });
 
-        // Step 2: Build raw_feed_input for ChatGPT
+        // Step 4: Build raw_feed_input for ChatGPT
         const rawFeedInput = this.buildRawFeedInput(allItems);
 
         logger.info('Built raw_feed_input', {
             itemCount: rawFeedInput.length,
         });
 
-        // Step 3: If no new items, return empty result (skip ChatGPT call to save costs)
+        // Step 5: If no new items, return empty result (skip ChatGPT call to save costs)
         if (rawFeedInput.length === 0) {
             logger.warn('No new items found in 72h window, skipping ChatGPT call');
             return {
@@ -62,9 +91,11 @@ export class ScanService {
             };
         }
 
-        // Step 4: Send to ChatGPT for analysis
+        // Step 6: Send to ChatGPT for analysis
         logger.info('Sending to ChatGPT for analysis', {
             inputItems: rawFeedInput.length,
+            rssCount: rssItems.length,
+            researchCount: researchItems.length,
         });
 
         const report = await this.reportGenerator.generateReport({

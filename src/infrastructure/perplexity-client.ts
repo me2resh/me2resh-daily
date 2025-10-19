@@ -1,0 +1,139 @@
+import { logger } from '@/utils/logger';
+
+export interface PerplexityCitation {
+    title: string;
+    url: string;
+    snippet?: string;
+    publishedDate?: string;
+}
+
+export interface PerplexitySearchResult {
+    answer: string;
+    citations: PerplexityCitation[];
+}
+
+export interface PerplexityResearchItem {
+    title: string;
+    source: string;
+    source_url: string;
+    published_at: string;
+    domain: string;
+    summary: string;
+}
+
+export class PerplexityClient {
+    private readonly apiKey: string;
+    private readonly apiUrl = 'https://api.perplexity.ai/chat/completions';
+    private readonly model: string;
+
+    constructor() {
+        const apiKey = process.env.PERPLEXITY_API_KEY;
+        if (!apiKey) {
+            throw new Error('PERPLEXITY_API_KEY is not set');
+        }
+        this.apiKey = apiKey;
+        this.model = process.env.PERPLEXITY_MODEL || 'sonar';
+    }
+
+    async search(query: string): Promise<PerplexitySearchResult> {
+        logger.info('Sending query to Perplexity', {
+            model: this.model,
+            queryLength: query.length,
+        });
+
+        try {
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages: [
+                        {
+                            role: 'system',
+                            content:
+                                'You are a research assistant. Provide accurate, recent information with specific citations including URLs and publication dates.',
+                        },
+                        {
+                            role: 'user',
+                            content: query,
+                        },
+                    ],
+                    temperature: 0.2,
+                    return_citations: true,
+                    return_related_questions: false,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                logger.error('Perplexity API error', {
+                    status: response.status,
+                    error: errorText,
+                });
+                throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            logger.info('Perplexity response received', {
+                answerLength: data.choices?.[0]?.message?.content?.length ?? 0,
+                citationsCount: data.citations?.length ?? 0,
+            });
+
+            const answer = data.choices?.[0]?.message?.content || '';
+            const citations: PerplexityCitation[] = (data.citations || []).map((citation: string) => ({
+                title: this.extractTitleFromUrl(citation),
+                url: citation,
+                snippet: '',
+                publishedDate: new Date().toISOString().split('T')[0],
+            }));
+
+            return {
+                answer,
+                citations,
+            };
+        } catch (error) {
+            logger.error('Failed to query Perplexity', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+        }
+    }
+
+    private extractTitleFromUrl(url: string): string {
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/').filter((p) => p.length > 0);
+            const lastPart = pathParts[pathParts.length - 1] || urlObj.hostname;
+            return lastPart
+                .replace(/[-_]/g, ' ')
+                .replace(/\.\w+$/, '')
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+        } catch {
+            return url;
+        }
+    }
+
+    parseCitationsToItems(result: PerplexitySearchResult, sourceName: string): PerplexityResearchItem[] {
+        return result.citations.map((citation) => {
+            let domain = '';
+            try {
+                domain = new URL(citation.url).hostname;
+            } catch {
+                domain = 'unknown';
+            }
+
+            return {
+                title: citation.title,
+                source: sourceName,
+                source_url: citation.url,
+                published_at: citation.publishedDate || new Date().toISOString(),
+                domain,
+                summary: citation.snippet || result.answer.substring(0, 200),
+            };
+        });
+    }
+}

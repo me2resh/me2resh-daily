@@ -8,6 +8,7 @@ export interface ScanConfig {
     timezone: string;
     scan_time: string;
     lookback_hours: number;
+    enable_perplexity_research?: boolean;
 }
 
 export interface Source {

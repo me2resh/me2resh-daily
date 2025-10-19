@@ -110,16 +110,20 @@ IMPORTANT RULES:
 
 CRITICAL FILTERING INSTRUCTIONS:
 - You have ${items.length} items in raw_feed_input covering multiple categories
+- These items come from TWO sources:
+  1. RSS feeds (validated, reliable URLs from specific sources)
+  2. Perplexity research (web search results with citations covering ALL topics)
 - DO NOT filter to only AWS items - analyze ALL items across ALL categories
 - Look for items matching these categories:
-  * ai_trends: Items from NEJM AI, npj Digital Medicine, Nature, Hugging Face, OpenAI, AI healthcare journals
+  * ai_trends: Items from NEJM AI, npj Digital Medicine, Nature, Hugging Face, OpenAI, AI healthcare journals, FDA/MHRA guidance
   * aws_platform_changes: Items from AWS What's New, AWS blogs, serverless updates
   * security_alerts: Items with CVEs, security advisories, vulnerability disclosures
   * developer_experience: Items from The New Stack, InfoQ, developer tools, framework releases
-  * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings
+  * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings, UK competitors (Zava, ASDA Online Doctor)
   * top_signals: The 5 most important items across ANY category (not just AWS)
-- If raw_feed_input contains items from sources like "HL7 Blog", "The New Stack", "Nature", etc., include them in appropriate categories
+- If raw_feed_input contains items from sources like "HL7 Blog", "The New Stack", "Nature", "Perplexity Research", etc., include them in appropriate categories
 - Diversify your selection across all available categories based on the source names in raw_feed_input
+- Perplexity Research items provide broader coverage including regulatory updates, competitive intelligence, and topics without RSS feeds
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;
     }

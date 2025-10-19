@@ -12,6 +12,7 @@ scan_config:
   scan_time: "05:00"
   lookback_hours: 72  # 72-hour freshness window
   max_items_per_source: 20  # Limit items per source to control costs
+  enable_perplexity_research: true  # Enable Perplexity for additional coverage
 
 topics:
   # ============================================================================
@@ -320,3 +321,69 @@ impact_keywords:
     - "M&A"
     - "earnings"
     - "acquisition"
+
+# Perplexity Research Query (Combined single query for all topics)
+perplexity_research:
+  combined_query: |
+    Research the following topics for updates in the last 72 hours. For each topic, provide specific article titles, URLs, and publication dates.
+
+    Topics to research:
+
+    1. AI in Healthcare & Clinical AI:
+       - NEJM AI, npj Digital Medicine, Lancet Digital Health new publications
+       - FDA AI/ML SaMD guidance updates and draft guidance documents
+       - MHRA Software & AI as Medical Device regulatory updates
+       - EU AI Act timeline updates, GPAI obligations, high-risk medical device classifications
+       - Clinical AI safety standards, validation frameworks, monitoring requirements
+
+    2. FHIR, HL7, and Healthcare Interoperability:
+       - HL7 FHIR ballot updates, implementation guides, new specifications
+       - NHS England Digital FHIR API changes and interoperability guidance
+       - ONC TEFCA FHIR roadmap updates and exchange requirements
+       - CMS FHIR spotlight initiatives and burden reduction programs
+       - HL7 UK implementations and UK-specific FHIR guidance
+
+    3. AWS Platform & Serverless:
+       - AWS Lambda, API Gateway, EventBridge, Step Functions, DynamoDB updates
+       - AWS security bulletins, ALAS (Amazon Linux Security Advisories)
+       - AWS Compute Blog, Architecture Blog, Well-Architected updates
+       - Serverless ecosystem: CNCF, Kubernetes, serverless frameworks
+       - AWS SAM CLI and SAM specification releases
+
+    4. Security & Vulnerabilities:
+       - Critical CVEs affecting TypeScript/NestJS (npm ecosystem)
+       - Golang security advisories and vulnerabilities
+       - PHP security updates and advisories
+       - AWS service vulnerabilities and security patches
+       - CISA Known Exploited Vulnerabilities (KEV) catalog updates
+       - GitHub Advisory Database for npm, Go, PHP
+
+    5. Corporate Intelligence - Hims & Hers:
+       - Hims & Hers Health Inc (CIK 0001773751) recent news
+       - SEC filings: 10-K, 10-Q, 8-K, Form 144
+       - Earnings announcements, financial guidance, subscriber metrics
+       - Product launches, service expansions, market strategy
+       - UK Competitors: Zava (zavamed.com) and ASDA Online Doctor updates
+       - Competitive pricing, new treatment offerings, regulatory changes
+
+    6. Developer Experience & Platform Engineering:
+       - Backstage (Spotify) developer portal updates and patterns
+       - InfoQ, The New Stack platform engineering trends
+       - CNCF projects reaching maturity/GA relevant to serverless
+       - ThoughtWorks Technology Radar platform/DX signals
+       - DevOps, AIOps, golden path improvements
+
+    7. Language & Framework Releases:
+       - NestJS releases and breaking changes
+       - TypeScript releases and language features
+       - Golang releases and standard library updates
+       - AWS SAM CLI and model specification updates
+       - PHP security releases and version updates
+
+    For each update found, provide:
+    - Exact article title
+    - Full URL to the source
+    - Publication date (YYYY-MM-DD format)
+    - Brief one-sentence summary
+
+    Focus on official sources, primary documentation, and regulatory agencies. Include specific dates for compliance deadlines and effective dates.

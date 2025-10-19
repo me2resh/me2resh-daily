@@ -1,6 +1,6 @@
 # Me2resh Daily - Executive Intelligence Scan
 
-A Lambda-based serverless application that performs daily scans of platform, architecture, security, and healthcare technology sources, delivering curated insights via email.
+AI-powered serverless scanner that aggregates healthcare tech, AWS platform updates, and security insights from 35+ sources into daily executive reports with archived web access.
 
 ## Overview
 
@@ -45,14 +45,20 @@ This application is designed for Director-level technical leadership (Platform &
                                           ▼
                                 ┌───────────────────┐
                                 │   Email Report    │
+                                └─────────┬─────────┘
+                                          │
+                                          ▼
+                                ┌───────────────────┐
+                                │  S3 Storage       │
+                                │  (HTML + JSON)    │
                                 └───────────────────┘
 ```
 
 **Simplified View:**
 ```
 RSS Feeds (35+ sources) ──┐
-                          ├──→ Merge → ChatGPT Analysis → Email
-Perplexity Research ──────┘
+                          ├──→ Merge → ChatGPT Analysis → Email → S3 Archive
+Perplexity Research ──────┘                                      (HTML + JSON)
 (ONE combined query)
 ```
 
@@ -75,11 +81,13 @@ src/
 - **YAML-based configuration**: Easily maintain sources and topics without code changes
 - **Scheduled execution**: Daily scans at configurable times via EventBridge
 - **Email delivery**: HTML and text email reports via Amazon SES
+- **Web Archive**: All reports stored in public S3 bucket (HTML + JSON) with direct browser access
 - **AI-Powered Analysis**: ChatGPT (gpt-4o-mini) categorizes and summarizes updates
 - **Web Research**: Perplexity API covers topics without RSS feeds (regulatory updates, competitive intelligence)
 - **URL Validation**: HTTP HEAD checks ensure all links are working before analysis
 - **Severity classification**: Automatic high/medium/low severity mapping
 - **Impact categorization**: Regulatory, Platform, Security, DX, Cost, Org/Strategy
+- **Category Limits**: Maximum 5 items per category for focused, actionable insights
 
 ## Prerequisites
 
@@ -245,6 +253,49 @@ The application uses CloudWatch Events (EventBridge) cron expressions:
 
 Note: CloudWatch Events uses UTC. Adjust for your timezone accordingly.
 
+## Report Archive (S3 Storage)
+
+All generated reports are automatically stored in a public S3 bucket for permanent web access.
+
+### Storage Structure
+
+```
+s3://me2resh-daily-scan/
+├── index.html                      # Always shows latest report
+└── reports/
+    ├── 2025-10-19/
+    │   ├── report.html            # Viewable in browser
+    │   └── data.json              # Original ScanResult data
+    ├── 2025-10-20/
+    │   ├── report.html
+    │   └── data.json
+    └── ...
+```
+
+### Accessing Reports
+
+**Latest Report**: https://me2resh-daily-scan.s3.eu-west-1.amazonaws.com/index.html
+
+**Specific Date**: https://me2resh-daily-scan.s3.eu-west-1.amazonaws.com/reports/2025-10-19/report.html
+
+**JSON Data**: https://me2resh-daily-scan.s3.eu-west-1.amazonaws.com/reports/2025-10-19/data.json
+
+### Features
+
+- **Public Access**: No authentication required - share links directly
+- **Permanent Storage**: Reports kept forever (no lifecycle policy)
+- **Dual Format**: HTML for viewing, JSON for programmatic access
+- **Email Integration**: Every email includes a "View this report online" footer link
+- **Same Styling**: Web reports use identical styling to email for consistency
+
+### Use Cases
+
+- Share specific reports with stakeholders via direct link
+- Build custom dashboards using the JSON API
+- Historical analysis and trend tracking
+- Offline access to past reports
+- Integration with BI tools or data pipelines
+
 ## Testing
 
 ### Testing via Lambda Console
@@ -393,12 +444,14 @@ Estimated monthly costs (as of 2025):
 
 - Lambda: $0.20 (daily 15-min execution at 512MB)
 - SES: $0.10 (30 emails/month)
+- S3 Storage: $0.05 (1-2GB reports storage)
+- S3 Requests: $0.01 (PUT operations for daily uploads)
 - CloudWatch Logs: $0.50 (log storage and insights)
 - EventBridge: Free (included in AWS Free Tier)
 - **OpenAI API (GPT-4o-mini)**: ~$0.30-0.60/month (for analysis)
 - **Perplexity API (sonar)**: ~$1.50-3.00/month (1 search per day)
 
-**Total**: ~$2.60-4.40/month
+**Total**: ~$2.66-4.46/month
 
 Note:
 - Perplexity is optional - system works with RSS-only mode
@@ -407,15 +460,19 @@ Note:
 
 ## Future Enhancements
 
-- [ ] Implement AI/LLM integration for content analysis using OpenAI ChatGPT API
+- [x] ~~Implement AI/LLM integration for content analysis using OpenAI ChatGPT API~~ ✅
+- [x] ~~Web archive with S3 storage for historical reports~~ ✅
+- [x] ~~Category-based organization with top 5 items per section~~ ✅
 - [ ] Add support for all source types (RSS, GitHub, NVD, CISA)
 - [ ] Implement caching to avoid re-fetching unchanged content
 - [ ] Add webhook support for real-time alerts
-- [ ] Create dashboard for historical scan results
+- [ ] Create interactive dashboard for historical scan results (using S3 JSON data)
 - [ ] Implement trend analysis across multiple scans
 - [ ] Add Slack/Teams integration as alternative to email
 - [ ] Switch to GPT-4o for higher quality analysis when budget allows
 - [ ] Implement retry logic for OpenAI API rate limits
+- [ ] Add search functionality to web archive
+- [ ] Export reports to PDF format
 
 ## License
 

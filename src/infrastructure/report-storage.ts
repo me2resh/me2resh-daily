@@ -57,7 +57,7 @@ export class S3ReportStorage implements ReportStorage {
     }
 
     private getWebsiteUrl(key: string): string {
-        // S3 website URL format: http://bucket-name.s3-website-region.amazonaws.com/key
-        return `http://${this.bucketName}.s3-website-${this.region}.amazonaws.com/${key}`;
+        // S3 direct URL format: https://bucket-name.s3.region.amazonaws.com/key
+        return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
     }
 }

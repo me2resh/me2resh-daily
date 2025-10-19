@@ -73,7 +73,6 @@ jobs:
           if [ -n "${{ secrets.PERPLEXITY_API_KEY }}" ]; then
             PARAMS="$PARAMS PerplexityApiKey=${{ secrets.PERPLEXITY_API_KEY }}"
           fi
-          PARAMS="$PARAMS ScheduleExpression=\"cron(0 5 * * ? *)\""
 
           sam deploy \
             --stack-name ${{ env.STACK_NAME }} \

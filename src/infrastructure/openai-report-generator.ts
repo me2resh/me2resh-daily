@@ -88,7 +88,13 @@ IMPORTANT INSTRUCTIONS:
 6. Analyze items from the ${timeframeText} (${lookbackHours} hours total)
 7. Do not hallucinate - only include real, verifiable information from the provided raw_feed_input
 8. DIVERSIFY your selection across ALL categories - do not focus only on AWS items
-9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories`;
+9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories
+
+CRITICAL: ALL FIELDS ARE REQUIRED
+- NEVER use "undefined" or null for any field
+- Every top_signal MUST have a meaningful "why_it_matters" explanation (1-2 sentences explaining business impact)
+- If you cannot determine why something matters, do NOT include it in top_signals
+- Every field must contain actual content - empty strings or "undefined" are NOT acceptable`;
     }
 
     private buildPrompt(params: ReportGenerationInput): string {

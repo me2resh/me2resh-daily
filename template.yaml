@@ -47,15 +47,8 @@ Resources:
       LicenseInfo: MIT
       RetentionPolicy: Delete
 
-  DailyScanFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/me2resh-daily-dev-DailyScanFunction
-      RetentionInDays: 14
-
   DailyScanFunction:
     Type: AWS::Serverless::Function
-    DependsOn: DailyScanFunctionLogGroup
     Properties:
       CodeUri: ./
       Handler: daily-scan.lambdaHandler

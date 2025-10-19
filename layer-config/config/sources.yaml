@@ -10,7 +10,7 @@ email:
 scan_config:
   timezone: "Europe/London"
   scan_time: "05:00"
-  lookback_hours: 72  # 72-hour freshness window
+  lookback_hours: 72  # Freshness window in hours - adjust to increase/decrease time span
   max_items_per_source: 20  # Limit items per source to control costs
   enable_perplexity_research: true  # Enable Perplexity for additional coverage
 
@@ -322,68 +322,103 @@ impact_keywords:
     - "earnings"
     - "acquisition"
 
-# Perplexity Research Query (Combined single query for all topics)
+# ============================================================================
+# PERPLEXITY WEB RESEARCH CONFIGURATION
+# ============================================================================
+# Perplexity performs ONE combined search covering all categories below.
+# Add/remove/modify research areas as needed. The app will automatically
+# build the prompt from REQUIREMENTS.txt + these research topics.
+#
+# Each research topic should specify:
+#   - category: What to research
+#   - sources: Suggested sources to prioritize
+#   - extract: What information to look for
+# ============================================================================
+
 perplexity_research:
-  combined_query: |
-    Research the following topics for updates in the last 72 hours. For each topic, provide specific article titles, URLs, and publication dates.
+  enabled: true  # Set to false to disable Perplexity (RSS-only mode)
 
-    Topics to research:
+  # Time span for research (uses lookback_hours from scan_config by default)
+  # Override here if you want different time span for web research vs RSS
+  # lookback_hours: 48  # Uncomment to override
 
-    1. AI in Healthcare & Clinical AI:
-       - NEJM AI, npj Digital Medicine, Lancet Digital Health new publications
-       - FDA AI/ML SaMD guidance updates and draft guidance documents
-       - MHRA Software & AI as Medical Device regulatory updates
-       - EU AI Act timeline updates, GPAI obligations, high-risk medical device classifications
-       - Clinical AI safety standards, validation frameworks, monitoring requirements
+  # Research topics - add/modify as needed
+  research_topics:
+    - category: "AI in Healthcare & Clinical AI"
+      sources:
+        - "NEJM AI, npj Digital Medicine, Lancet Digital Health"
+        - "FDA AI/ML SaMD guidance and draft documents"
+        - "MHRA Software & AI as Medical Device"
+        - "EU AI Act official timeline and GPAI obligations"
+      extract:
+        - "Regulatory guidance updates with effective dates"
+        - "Clinical AI safety standards and validation frameworks"
+        - "High-risk medical device classifications"
+        - "Monitoring and explainability requirements"
 
-    2. FHIR, HL7, and Healthcare Interoperability:
-       - HL7 FHIR ballot updates, implementation guides, new specifications
-       - NHS England Digital FHIR API changes and interoperability guidance
-       - ONC TEFCA FHIR roadmap updates and exchange requirements
-       - CMS FHIR spotlight initiatives and burden reduction programs
-       - HL7 UK implementations and UK-specific FHIR guidance
+    - category: "FHIR, HL7, and Healthcare Interoperability"
+      sources:
+        - "HL7 official blog and HL7 News publication"
+        - "NHS England Digital FHIR APIs"
+        - "ONC TEFCA FHIR roadmap"
+        - "CMS FHIR spotlight and burden reduction"
+      extract:
+        - "FHIR ballot updates and implementation guides"
+        - "NHS API changes and interoperability guidance"
+        - "TEFCA exchange requirements"
+        - "UK-specific FHIR implementations"
 
-    3. AWS Platform & Serverless:
-       - AWS Lambda, API Gateway, EventBridge, Step Functions, DynamoDB updates
-       - AWS security bulletins, ALAS (Amazon Linux Security Advisories)
-       - AWS Compute Blog, Architecture Blog, Well-Architected updates
-       - Serverless ecosystem: CNCF, Kubernetes, serverless frameworks
-       - AWS SAM CLI and SAM specification releases
+    - category: "AWS Platform & Serverless"
+      sources:
+        - "AWS What's New, Compute Blog, Architecture Blog"
+        - "AWS security bulletins and ALAS"
+        - "CNCF and Kubernetes ecosystem"
+        - "AWS SAM CLI and specification releases"
+      extract:
+        - "Lambda, API Gateway, EventBridge, Step Functions, DynamoDB updates"
+        - "Security bulletins and patches"
+        - "Well-Architected framework updates"
+        - "Serverless framework and tooling changes"
 
-    4. Security & Vulnerabilities:
-       - Critical CVEs affecting TypeScript/NestJS (npm ecosystem)
-       - Golang security advisories and vulnerabilities
-       - PHP security updates and advisories
-       - AWS service vulnerabilities and security patches
-       - CISA Known Exploited Vulnerabilities (KEV) catalog updates
-       - GitHub Advisory Database for npm, Go, PHP
+    - category: "Security & Vulnerabilities"
+      sources:
+        - "NVD and GitHub Advisory Database"
+        - "CISA Known Exploited Vulnerabilities (KEV)"
+        - "Language-specific security advisories"
+      extract:
+        - "Critical CVEs for TypeScript/NestJS (npm)"
+        - "Golang security advisories"
+        - "PHP security updates"
+        - "AWS service vulnerabilities"
 
-    5. Corporate Intelligence - Hims & Hers:
-       - Hims & Hers Health Inc (CIK 0001773751) recent news
-       - SEC filings: 10-K, 10-Q, 8-K, Form 144
-       - Earnings announcements, financial guidance, subscriber metrics
-       - Product launches, service expansions, market strategy
-       - UK Competitors: Zava (zavamed.com) and ASDA Online Doctor updates
-       - Competitive pricing, new treatment offerings, regulatory changes
+    - category: "Corporate Intelligence - Hims & Hers"
+      sources:
+        - "Hims & Hers Investor Relations (CIK 0001773751)"
+        - "SEC filings (10-K, 10-Q, 8-K, Form 144)"
+        - "UK competitors: Zava and ASDA Online Doctor"
+      extract:
+        - "Earnings announcements and guidance"
+        - "Product launches and service expansions"
+        - "Subscriber metrics and market strategy"
+        - "Competitive pricing and regulatory changes"
 
-    6. Developer Experience & Platform Engineering:
-       - Backstage (Spotify) developer portal updates and patterns
-       - InfoQ, The New Stack platform engineering trends
-       - CNCF projects reaching maturity/GA relevant to serverless
-       - ThoughtWorks Technology Radar platform/DX signals
-       - DevOps, AIOps, golden path improvements
+    - category: "Developer Experience & Platform Engineering"
+      sources:
+        - "Backstage, InfoQ, The New Stack"
+        - "CNCF maturity announcements"
+        - "ThoughtWorks Technology Radar"
+      extract:
+        - "Developer portal updates and patterns"
+        - "Platform engineering trends"
+        - "DevOps and AIOps improvements"
+        - "Golden path tooling"
 
-    7. Language & Framework Releases:
-       - NestJS releases and breaking changes
-       - TypeScript releases and language features
-       - Golang releases and standard library updates
-       - AWS SAM CLI and model specification updates
-       - PHP security releases and version updates
-
-    For each update found, provide:
-    - Exact article title
-    - Full URL to the source
-    - Publication date (YYYY-MM-DD format)
-    - Brief one-sentence summary
-
-    Focus on official sources, primary documentation, and regulatory agencies. Include specific dates for compliance deadlines and effective dates.
+    - category: "Language & Framework Releases"
+      sources:
+        - "NestJS, TypeScript, Golang release pages"
+        - "AWS SAM CLI and model releases"
+        - "PHP security releases"
+      extract:
+        - "Breaking changes and new features"
+        - "Language feature updates"
+        - "Security patches and version updates"

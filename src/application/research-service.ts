@@ -2,6 +2,12 @@ import { SourceConfiguration } from '@/domain/source-config';
 import { PerplexityClient, PerplexityResearchItem } from '@/infrastructure/perplexity-client';
 import { logger } from '@/utils/logger';
 
+interface ResearchTopic {
+    category: string;
+    sources: string[];
+    extract: string[];
+}
+
 export class ResearchService {
     constructor(private config: SourceConfiguration, private perplexityClient: PerplexityClient) {}
 
@@ -12,14 +18,20 @@ export class ResearchService {
             return [];
         }
 
-        // Get the combined research query from config
-        const query = (this.config as Record<string, any>).perplexity_research?.combined_query;
-        if (!query) {
-            logger.warn('No perplexity_research.combined_query found in config');
+        const perplexityConfig = (this.config as Record<string, any>).perplexity_research;
+        if (!perplexityConfig?.enabled) {
+            logger.info('Perplexity research disabled in perplexity_research.enabled');
             return [];
         }
 
-        logger.info('Starting Perplexity research');
+        // Build query dynamically from REQUIREMENTS.txt + YAML config
+        const query = this.buildResearchQuery(perplexityConfig);
+        if (!query) {
+            logger.warn('Failed to build research query');
+            return [];
+        }
+
+        logger.info('Starting Perplexity research with dynamic query');
 
         try {
             const result = await this.perplexityClient.search(query);
@@ -44,5 +56,51 @@ export class ResearchService {
             // Don't throw - continue with RSS-only results
             return [];
         }
+    }
+
+    private buildResearchQuery(perplexityConfig: Record<string, any>): string {
+        const researchTopics = perplexityConfig.research_topics as ResearchTopic[];
+        if (!researchTopics || researchTopics.length === 0) {
+            logger.warn('No research topics found in config');
+            return '';
+        }
+
+        // Get lookback hours (use perplexity override or default from scan_config)
+        const lookbackHours = perplexityConfig.lookback_hours || this.config.scan_config.lookback_hours;
+
+        // Build prompt from topics
+        let topicsSection = '';
+        researchTopics.forEach((topic, index) => {
+            topicsSection += `\n${index + 1}. ${topic.category}:\n`;
+            topicsSection += `   Sources to prioritize:\n`;
+            topic.sources.forEach((source) => {
+                topicsSection += `   - ${source}\n`;
+            });
+            topicsSection += `   \n   Extract:\n`;
+            topic.extract.forEach((extractItem) => {
+                topicsSection += `   - ${extractItem}\n`;
+            });
+            topicsSection += '\n';
+        });
+
+        const query = `Research the following topics for updates in the last ${lookbackHours} hours. For each topic, provide specific article titles, URLs, and publication dates.
+
+Topics to research:
+${topicsSection}
+For each update found, provide:
+- Exact article title
+- Full URL to the source
+- Publication date (YYYY-MM-DD format)
+- Brief one-sentence summary
+
+Focus on official sources, primary documentation, and regulatory agencies. Include specific dates for compliance deadlines and effective dates.`;
+
+        logger.info('Built dynamic research query', {
+            lookbackHours,
+            topicCount: researchTopics.length,
+            queryLength: query.length,
+        });
+
+        return query;
     }
 }

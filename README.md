@@ -109,20 +109,67 @@ aws ses get-identity-verification-attributes --identities your-from-address@exam
 
 ### 2. Source Configuration
 
-Edit `config/sources.yaml` to customize:
+All configuration is managed through `layer-config/config/sources.yaml`. This single file controls:
 
-- Email addresses (can use environment variables)
+**Basic Settings:**
+- Email addresses (supports environment variables)
 - Scan schedule and timezone
-- Topics and sources to monitor
-- Severity and impact classification rules
+- **Lookback hours** (freshness window - default: 72 hours)
+- Max items per source
 
-Example environment variable usage in `sources.yaml`:
+**RSS Feeds:**
+- 35+ pre-configured RSS sources across 7 categories
+- Add/remove sources without code changes
+
+**Perplexity Research:**
+- Research topics and categories (7 categories covering AI healthcare, FHIR, AWS, security, etc.)
+- Sources to prioritize for each topic
+- What information to extract
+- Override lookback hours for web research (optional)
+
+Example configuration:
 
 ```yaml
 email:
   to_address: "${TO_EMAIL_ADDRESS}"
   from_address: "${FROM_EMAIL_ADDRESS}"
+  subject_prefix: "Me2resh Daily"
+
+scan_config:
+  timezone: "Europe/London"
+  lookback_hours: 72  # Adjust to change time span (24, 48, 72, 96, etc.)
+  enable_perplexity_research: true
+
+perplexity_research:
+  enabled: true
+  # lookback_hours: 48  # Uncomment to override scan_config
+  research_topics:
+    - category: "AI in Healthcare & Clinical AI"
+      sources:
+        - "FDA AI/ML SaMD guidance and draft documents"
+        - "EU AI Act official timeline and GPAI obligations"
+        - "NEJM AI, npj Digital Medicine, Lancet Digital Health"
+      extract:
+        - "Regulatory guidance with effective dates"
+        - "Clinical AI safety standards and validation frameworks"
+        - "High-risk medical device classifications"
+
+    - category: "FHIR, HL7, and Healthcare Interoperability"
+      sources:
+        - "HL7 official blog and HL7 News publication"
+        - "NHS England Digital FHIR APIs"
+      extract:
+        - "FHIR ballot updates and implementation guides"
+        - "NHS API changes and interoperability guidance"
+
+    # Add more research topics as needed...
 ```
+
+**How it works:**
+1. Edit `sources.yaml` to add/modify research topics
+2. The app automatically builds Perplexity query from your config at runtime
+3. No code changes needed - just update YAML and redeploy
+4. The dynamic prompt includes all categories, sources, and extraction requirements
 
 ## Installation
 

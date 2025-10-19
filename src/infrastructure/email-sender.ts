@@ -23,8 +23,11 @@ export class SESEmailSender implements EmailSender {
             const htmlBody = this.generateHtmlBody(scanResult);
             const textBody = this.generateTextBody(scanResult);
 
+            // Format sender with display name
+            const source = `M2R <${fromAddress}>`;
+
             const params = {
-                Source: fromAddress,
+                Source: source,
                 Destination: {
                     ToAddresses: [toAddress],
                 },
@@ -180,9 +183,10 @@ export class SESEmailSender implements EmailSender {
         if (scanResult.ai_trends && scanResult.ai_trends.length > 0) {
             html += `<h2 style="color: #9b59b6; font-size: 20px; margin: 32px 0 16px 0;">AI Trends (${scanResult.ai_trends.length})</h2>`;
             scanResult.ai_trends.forEach((trend) => {
+                const category = Array.isArray(trend.category) ? trend.category[0] : trend.category;
                 html += `
                 <div style="margin-bottom: 16px; padding: 16px; background-color: #f9f3ff; border-left: 4px solid #9b59b6; border-radius: 4px;">
-                    <p style="margin: 0 0 8px 0;"><strong>${trend.item}</strong> (${trend.category})</p>
+                    <p style="margin: 0 0 8px 0;"><strong>${trend.item}</strong> (${category})</p>
                     <p style="margin: 0 0 8px 0;">${trend.summary}</p>
                     <p style="margin: 0; font-size: 14px;"><a href="${trend.source_url}" style="color: #9b59b6;">Read more →</a></p>
                 </div>`;
@@ -193,9 +197,10 @@ export class SESEmailSender implements EmailSender {
         if (scanResult.trend_watchlist && scanResult.trend_watchlist.length > 0) {
             html += `<h2 style="color: #16a085; font-size: 20px; margin: 32px 0 16px 0;">Trend Watchlist (${scanResult.trend_watchlist.length})</h2>`;
             scanResult.trend_watchlist.forEach((trend) => {
+                const trajectory = Array.isArray(trend.trajectory) ? trend.trajectory[0] : trend.trajectory;
                 html += `
                 <div style="margin-bottom: 16px; padding: 16px; background-color: #f0faf8; border-left: 4px solid #16a085; border-radius: 4px;">
-                    <p style="margin: 0 0 8px 0;"><strong>${trend.topic}</strong> <span style="color: #16a085; font-size: 12px; text-transform: uppercase;">[${trend.trajectory}]</span></p>
+                    <p style="margin: 0 0 8px 0;"><strong>${trend.topic}</strong> <span style="color: #16a085; font-size: 12px; text-transform: uppercase;">[${trajectory}]</span></p>
                     <p style="margin: 0 0 8px 0;">${trend.summary}</p>
                     <p style="margin: 0; font-size: 14px;"><a href="${trend.source_url}" style="color: #16a085;">Explore →</a></p>
                 </div>`;
@@ -206,9 +211,10 @@ export class SESEmailSender implements EmailSender {
         if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
             html += `<h2 style="color: #2980b9; font-size: 20px; margin: 32px 0 16px 0;">Corporate - Hims & Hers (${scanResult.corporate_hims_hers.length})</h2>`;
             scanResult.corporate_hims_hers.forEach((item) => {
+                const type = Array.isArray(item.type) ? item.type[0] : item.type;
                 html += `
                 <div style="margin-bottom: 16px; padding: 16px; background-color: #f0f7fb; border-left: 4px solid #2980b9; border-radius: 4px;">
-                    <p style="margin: 0 0 8px 0;"><strong>${item.item}</strong> <span style="color: #2980b9; font-size: 12px; text-transform: uppercase;">[${item.type}]</span></p>
+                    <p style="margin: 0 0 8px 0;"><strong>${item.item}</strong> <span style="color: #2980b9; font-size: 12px; text-transform: uppercase;">[${type}]</span></p>
                     <p style="margin: 0 0 8px 0;">${item.summary}</p>
                     <p style="margin: 0; font-size: 14px;"><a href="${item.source_url}" style="color: #2980b9;">View details →</a></p>
                 </div>`;
@@ -280,10 +286,13 @@ ${idx + 1}. ${signal.title}
             otherSectionsText += `\n\nAI TRENDS (${scanResult.ai_trends.length})\n`;
             otherSectionsText += scanResult.ai_trends
                 .map(
-                    (trend) => `
-• ${trend.item} (${trend.category})
+                    (trend) => {
+                        const category = Array.isArray(trend.category) ? trend.category[0] : trend.category;
+                        return `
+• ${trend.item} (${category})
   ${trend.summary}
-  Read more: ${trend.source_url}`,
+  Read more: ${trend.source_url}`;
+                    },
                 )
                 .join('\n');
         }
@@ -293,10 +302,13 @@ ${idx + 1}. ${signal.title}
             otherSectionsText += `\n\nTREND WATCHLIST (${scanResult.trend_watchlist.length})\n`;
             otherSectionsText += scanResult.trend_watchlist
                 .map(
-                    (trend) => `
-• ${trend.topic} [${trend.trajectory.toUpperCase()}]
+                    (trend) => {
+                        const trajectory = Array.isArray(trend.trajectory) ? trend.trajectory[0] : trend.trajectory;
+                        return `
+• ${trend.topic} [${trajectory.toUpperCase()}]
   ${trend.summary}
-  Explore: ${trend.source_url}`,
+  Explore: ${trend.source_url}`;
+                    },
                 )
                 .join('\n');
         }
@@ -306,10 +318,13 @@ ${idx + 1}. ${signal.title}
             otherSectionsText += `\n\nCORPORATE - HIMS & HERS (${scanResult.corporate_hims_hers.length})\n`;
             otherSectionsText += scanResult.corporate_hims_hers
                 .map(
-                    (item) => `
-• ${item.item} [${item.type.toUpperCase()}]
+                    (item) => {
+                        const type = Array.isArray(item.type) ? item.type[0] : item.type;
+                        return `
+• ${item.item} [${type.toUpperCase()}]
   ${item.summary}
-  View details: ${item.source_url}`,
+  View details: ${item.source_url}`;
+                    },
                 )
                 .join('\n');
         }

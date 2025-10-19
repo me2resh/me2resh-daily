@@ -285,15 +285,13 @@ ${idx + 1}. ${signal.title}
         if (scanResult.ai_trends && scanResult.ai_trends.length > 0) {
             otherSectionsText += `\n\nAI TRENDS (${scanResult.ai_trends.length})\n`;
             otherSectionsText += scanResult.ai_trends
-                .map(
-                    (trend) => {
-                        const category = Array.isArray(trend.category) ? trend.category[0] : trend.category;
-                        return `
+                .map((trend) => {
+                    const category = Array.isArray(trend.category) ? trend.category[0] : trend.category;
+                    return `
 • ${trend.item} (${category})
   ${trend.summary}
   Read more: ${trend.source_url}`;
-                    },
-                )
+                })
                 .join('\n');
         }
 
@@ -301,15 +299,15 @@ ${idx + 1}. ${signal.title}
         if (scanResult.trend_watchlist && scanResult.trend_watchlist.length > 0) {
             otherSectionsText += `\n\nTREND WATCHLIST (${scanResult.trend_watchlist.length})\n`;
             otherSectionsText += scanResult.trend_watchlist
-                .map(
-                    (trend) => {
-                        const trajectory = Array.isArray(trend.trajectory) ? trend.trajectory[0] : trend.trajectory;
-                        return `
+                .map((trend) => {
+                    const trajectory = Array.isArray(trend.trajectory)
+                        ? trend.trajectory[0]
+                        : trend.trajectory;
+                    return `
 • ${trend.topic} [${trajectory.toUpperCase()}]
   ${trend.summary}
   Explore: ${trend.source_url}`;
-                    },
-                )
+                })
                 .join('\n');
         }
 
@@ -317,15 +315,13 @@ ${idx + 1}. ${signal.title}
         if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
             otherSectionsText += `\n\nCORPORATE - HIMS & HERS (${scanResult.corporate_hims_hers.length})\n`;
             otherSectionsText += scanResult.corporate_hims_hers
-                .map(
-                    (item) => {
-                        const type = Array.isArray(item.type) ? item.type[0] : item.type;
-                        return `
+                .map((item) => {
+                    const type = Array.isArray(item.type) ? item.type[0] : item.type;
+                    return `
 • ${item.item} [${type.toUpperCase()}]
   ${item.summary}
   View details: ${item.source_url}`;
-                    },
-                )
+                })
                 .join('\n');
         }
 

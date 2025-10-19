@@ -61,10 +61,15 @@ Resources:
       Handler: daily-scan.lambdaHandler
       Description: Performs daily scan of platform and architecture sources
       Policies:
-        - SESCrudPolicy:
-            IdentityName: !Ref FromEmailAddress
         - Version: '2012-10-17'
           Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource:
+                - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${FromEmailAddress}'
+                - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${ToEmailAddress}'
             - Effect: Allow
               Action:
                 - logs:CreateLogGroup

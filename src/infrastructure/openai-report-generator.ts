@@ -48,7 +48,7 @@ export class OpenAIReportGenerator implements ReportGenerator {
                     role: 'system',
                     content: `You are an executive intelligence analyst for a Director of Platform & Architecture at a healthcare technology company.
 
-Your role is to scan the web for high-signal updates across AI, AWS/serverless, FHIR/HL7, security, and platform engineering.
+Your role is to analyze RSS feed items across AI, AWS/serverless, FHIR/HL7, security, and platform engineering.
 
 IMPORTANT INSTRUCTIONS:
 1. Return ONLY valid JSON matching the exact schema provided in the prompt
@@ -57,7 +57,9 @@ IMPORTANT INSTRUCTIONS:
 4. For raw_feed items, each should have a unique, specific source_url to the actual article
 5. Ensure all dates are in YYYY-MM-DD format
 6. Prioritize recent items (last 48-72 hours)
-7. Do not hallucinate - only include real, verifiable information`,
+7. Do not hallucinate - only include real, verifiable information from the provided raw_feed_input
+8. DIVERSIFY your selection across ALL categories - do not focus only on AWS items
+9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories`,
                 },
                 {
                     role: 'user',
@@ -105,6 +107,19 @@ IMPORTANT RULES:
 5. Include in the final raw_feed output only the subset of raw_feed_input items you actually used
 6. Include ALL sections from the schema (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience, raw_feed)
 7. If a section has no items from raw_feed_input, include it as an empty array
+
+CRITICAL FILTERING INSTRUCTIONS:
+- You have ${items.length} items in raw_feed_input covering multiple categories
+- DO NOT filter to only AWS items - analyze ALL items across ALL categories
+- Look for items matching these categories:
+  * ai_trends: Items from NEJM AI, npj Digital Medicine, Nature, Hugging Face, OpenAI, AI healthcare journals
+  * aws_platform_changes: Items from AWS What's New, AWS blogs, serverless updates
+  * security_alerts: Items with CVEs, security advisories, vulnerability disclosures
+  * developer_experience: Items from The New Stack, InfoQ, developer tools, framework releases
+  * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings
+  * top_signals: The 5 most important items across ANY category (not just AWS)
+- If raw_feed_input contains items from sources like "HL7 Blog", "The New Stack", "Nature", etc., include them in appropriate categories
+- Diversify your selection across all available categories based on the source names in raw_feed_input
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;
     }

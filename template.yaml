@@ -55,13 +55,11 @@ Resources:
 
   DailyScanFunction:
     Type: AWS::Serverless::Function
+    DependsOn: DailyScanFunctionLogGroup
     Properties:
       CodeUri: ./
       Handler: daily-scan.lambdaHandler
       Description: Performs daily scan of platform and architecture sources
-      LoggingConfig:
-        LogFormat: JSON
-        LogGroup: !Ref DailyScanFunctionLogGroup
       Policies:
         - SESCrudPolicy:
             IdentityName: !Ref FromEmailAddress

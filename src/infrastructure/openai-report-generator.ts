@@ -46,20 +46,7 @@ export class OpenAIReportGenerator implements ReportGenerator {
             messages: [
                 {
                     role: 'system',
-                    content: `You are an executive intelligence analyst for a Director of Platform & Architecture at a healthcare technology company.
-
-Your role is to analyze RSS feed items across AI, AWS/serverless, FHIR/HL7, security, and platform engineering.
-
-IMPORTANT INSTRUCTIONS:
-1. Return ONLY valid JSON matching the exact schema provided in the prompt
-2. Include ALL sections from the schema, even if empty arrays
-3. For source_url fields, provide SPECIFIC article URLs, not just domain homepages
-4. For raw_feed items, each should have a unique, specific source_url to the actual article
-5. Ensure all dates are in YYYY-MM-DD format
-6. Prioritize recent items (last 48-72 hours)
-7. Do not hallucinate - only include real, verifiable information from the provided raw_feed_input
-8. DIVERSIFY your selection across ALL categories - do not focus only on AWS items
-9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories`,
+                    content: this.buildSystemPrompt(params),
                 },
                 {
                     role: 'user',
@@ -82,8 +69,34 @@ IMPORTANT INSTRUCTIONS:
         }
     }
 
+    private buildSystemPrompt(params: ReportGenerationInput): string {
+        const lookbackHours = params.lookback_hours || 24;
+        const lookbackDays = Math.round(lookbackHours / 24);
+        const timeframeText =
+            lookbackHours <= 48 ? `last ${lookbackHours} hours` : `last ${lookbackDays} days`;
+
+        return `You are an executive intelligence analyst for a Director of Platform & Architecture at a healthcare technology company.
+
+Your role is to analyze RSS feed items across AI, AWS/serverless, FHIR/HL7, security, and platform engineering.
+
+IMPORTANT INSTRUCTIONS:
+1. Return ONLY valid JSON matching the exact schema provided in the prompt
+2. Include ALL sections from the schema, even if empty arrays
+3. For source_url fields, provide SPECIFIC article URLs, not just domain homepages
+4. For raw_feed items, each should have a unique, specific source_url to the actual article
+5. Ensure all dates are in YYYY-MM-DD format
+6. Analyze items from the ${timeframeText} (${lookbackHours} hours total)
+7. Do not hallucinate - only include real, verifiable information from the provided raw_feed_input
+8. DIVERSIFY your selection across ALL categories - do not focus only on AWS items
+9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories`;
+    }
+
     private buildPrompt(params: ReportGenerationInput): string {
-        const { date, timezone, items } = params;
+        const { date, timezone, items, lookback_hours } = params;
+        const lookbackHours = lookback_hours || 24;
+        const lookbackDays = Math.round(lookbackHours / 24);
+        const timeframeText =
+            lookbackHours <= 48 ? `last ${lookbackHours} hours` : `last ${lookbackDays} days`;
 
         // Build raw_feed_input JSON
         const rawFeedInputJson = JSON.stringify(items, null, 2);
@@ -109,11 +122,12 @@ IMPORTANT RULES:
 7. If a section has no items from raw_feed_input, include it as an empty array
 
 CRITICAL FILTERING INSTRUCTIONS:
-- You have ${items.length} items in raw_feed_input covering multiple categories
+- You have ${items.length} items in raw_feed_input covering the ${timeframeText} (${lookbackHours} hours)
 - These items come from TWO sources:
   1. RSS feeds (validated, reliable URLs from specific sources)
   2. Perplexity research (web search results with citations covering ALL topics)
 - DO NOT filter to only AWS items - analyze ALL items across ALL categories
+- Consider ALL items regardless of publish date - the lookback window has already been applied during data collection
 - Look for items matching these categories:
   * ai_trends: Items from NEJM AI, npj Digital Medicine, Nature, Hugging Face, OpenAI, AI healthcare journals, FDA/MHRA guidance
   * aws_platform_changes: Items from AWS What's New, AWS blogs, serverless updates

@@ -14,6 +14,7 @@ export interface ReportGenerationInput {
     date: string;
     timezone: string;
     items: ReportGenerationItem[];
+    lookback_hours?: number; // Optional: used to customize ChatGPT filtering instructions
 }
 
 export interface ReportGenerator {

@@ -20,7 +20,11 @@ export class S3ReportStorage implements ReportStorage {
     async saveReport(date: string, scanResult: ScanResult, htmlBody: string): Promise<string> {
         try {
             // 1. Save data.json
-            await this.uploadFile(`reports/${date}/data.json`, JSON.stringify(scanResult, null, 2), 'application/json');
+            await this.uploadFile(
+                `reports/${date}/data.json`,
+                JSON.stringify(scanResult, null, 2),
+                'application/json',
+            );
 
             // 2. Save report.html
             await this.uploadFile(`reports/${date}/report.html`, htmlBody, 'text/html');

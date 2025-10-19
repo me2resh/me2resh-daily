@@ -15,23 +15,69 @@ This application is designed for Director-level technical leadership (Platform &
 
 ## Architecture
 
+### High-Level Data Flow
+
+```
+┌──────────────────┐
+│  Daily Scan      │
+│  Lambda Trigger  │
+└────────┬─────────┘
+         │
+         ├──► RSS Feeds (35+ sources) ──────┐
+         │    - Fast, validated URLs        │
+         │    - Specific feeds              │
+         │                                  │
+         └──► Perplexity Research ─────────┤
+              - ONE combined query          │
+              - All 7 categories covered    │
+              - Web citations               │
+                                            ▼
+                                ┌───────────────────┐
+                                │  Merge & Dedupe   │
+                                └─────────┬─────────┘
+                                          │
+                                          ▼
+                                ┌───────────────────┐
+                                │  ChatGPT Analysis │
+                                │  (gpt-4o-mini)    │
+                                └─────────┬─────────┘
+                                          │
+                                          ▼
+                                ┌───────────────────┐
+                                │   Email Report    │
+                                └───────────────────┘
+```
+
+**Simplified View:**
+```
+RSS Feeds (35+ sources) ──┐
+                          ├──→ Merge → ChatGPT Analysis → Email
+Perplexity Research ──────┘
+(ONE combined query)
+```
+
+### Code Architecture
+
 Built following clean architecture principles with clear separation of concerns:
 
 ```
 src/
 ├── domain/           # Domain models and interfaces
-├── application/      # Business logic (ScanService)
-├── infrastructure/   # External integrations (Email, HTTP)
+├── application/      # Business logic (ScanService, ResearchService)
+├── infrastructure/   # External integrations (Email, HTTP, Perplexity, OpenAI)
 ├── command/lambda/   # Lambda handlers
 └── utils/            # Shared utilities (logger, config loader)
 ```
 
 ## Features
 
+- **Hybrid Data Collection**: Combines RSS feeds (35+ sources) with Perplexity web research for maximum coverage
 - **YAML-based configuration**: Easily maintain sources and topics without code changes
 - **Scheduled execution**: Daily scans at configurable times via EventBridge
 - **Email delivery**: HTML and text email reports via Amazon SES
-- **Extensible scanning**: Support for RSS, HTML, GitHub, NVD, and CISA sources
+- **AI-Powered Analysis**: ChatGPT (gpt-4o-mini) categorizes and summarizes updates
+- **Web Research**: Perplexity API covers topics without RSS feeds (regulatory updates, competitive intelligence)
+- **URL Validation**: HTTP HEAD checks ensure all links are working before analysis
 - **Severity classification**: Automatic high/medium/low severity mapping
 - **Impact categorization**: Regulatory, Platform, Security, DX, Cost, Org/Strategy
 
@@ -42,6 +88,7 @@ src/
 - Node.js 18.x or later
 - Verified email addresses in Amazon SES (for sending/receiving emails)
 - OpenAI API key (for ChatGPT analysis)
+- Perplexity API key (optional, for web research - get it from https://www.perplexity.ai/settings/api)
 
 ## Configuration
 
@@ -272,12 +319,15 @@ Estimated monthly costs (as of 2025):
 - SES: $0.10 (30 emails/month)
 - CloudWatch Logs: $0.50 (log storage and insights)
 - EventBridge: Free (included in AWS Free Tier)
-- **OpenAI API (GPT-4o-mini)**: ~$2-5/month (varies by feed volume)
-- **OpenAI API (GPT-4o)**: ~$10-20/month (higher quality, more expensive)
+- **OpenAI API (GPT-4o-mini)**: ~$0.30-0.60/month (for analysis)
+- **Perplexity API (sonar)**: ~$1.50-3.00/month (1 search per day)
 
-**Total**: ~$3-6/month with GPT-4o-mini, ~$11-21/month with GPT-4o
+**Total**: ~$2.60-4.40/month
 
-Note: OpenAI costs depend on the volume of content analyzed. Using GPT-4o-mini is recommended for cost efficiency.
+Note:
+- Perplexity is optional - system works with RSS-only mode
+- Using GPT-4o instead of GPT-4o-mini would add ~$8-15/month
+- Costs scale with the volume of content analyzed
 
 ## Future Enhancements
 

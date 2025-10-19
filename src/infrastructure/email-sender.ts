@@ -104,7 +104,7 @@ export class SESEmailSender implements EmailSender {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Platform & Architecture Daily — ${scanResult.date}</title>
+    <title>Me2resh Daily — ${scanResult.date}</title>
     <!--[if mso]>
     <style type="text/css">
         body, table, td, a { font-family: Arial, sans-serif !important; }
@@ -118,7 +118,7 @@ export class SESEmailSender implements EmailSender {
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <tr>
                         <td style="padding: 30px;">
-                            <h1 style="margin: 0 0 24px 0; color: #2c3e50; font-size: 24px; border-bottom: 3px solid #3498db; padding-bottom: 12px;">Platform & Architecture Daily</h1>
+                            <h1 style="margin: 0 0 24px 0; color: #2c3e50; font-size: 24px; border-bottom: 3px solid #3498db; padding-bottom: 12px;">Me2resh Daily</h1>
                             <p style="margin: 0 0 24px 0; color: #666; font-size: 14px;">${
                                 scanResult.date
                             } | ${scanResult.timezone}</p>
@@ -247,7 +247,7 @@ ${idx + 1}. ${signal.title}
         }
 
         return `
-Platform & Architecture Daily — ${scanResult.date}
+Me2resh Daily — ${scanResult.date}
 ========================================
 
 TOP SIGNALS (${scanResult.top_signals.length})

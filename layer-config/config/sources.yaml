@@ -5,7 +5,7 @@
 email:
   to_address: "${TO_EMAIL_ADDRESS}"
   from_address: "${FROM_EMAIL_ADDRESS}"
-  subject_prefix: "Platform & Architecture Daily"
+  subject_prefix: "Me2resh Daily"
 
 scan_config:
   timezone: "Europe/London"

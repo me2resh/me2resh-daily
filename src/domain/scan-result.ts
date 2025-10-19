@@ -13,6 +13,7 @@ export interface TrendWatchlist {
     summary: string;
     trajectory: 'rising' | 'stable' | 'fading';
     sources: string[];
+    source_url: string;
 }
 
 export interface SecurityAlert {
@@ -30,6 +31,7 @@ export interface AwsPlatformChange {
     change: string;
     likely_effect: string;
     action_hint: string;
+    source_url: string;
 }
 
 export interface AiTrend {
@@ -53,6 +55,7 @@ export interface DeveloperExperience {
     pattern_or_tool: string;
     update: string;
     relevance_to_platform: string;
+    source_url: string;
 }
 
 export interface RawFeed {

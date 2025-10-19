@@ -170,7 +170,8 @@ export class SESEmailSender implements EmailSender {
                 html += `
                 <div style="margin-bottom: 16px; padding: 16px; background-color: #fffaf0; border-left: 4px solid #f39c12; border-radius: 4px;">
                     <p style="margin: 0 0 8px 0;"><strong>${change.service}:</strong> ${change.change}</p>
-                    <p style="margin: 0; font-size: 14px; color: #666;">${change.action_hint}</p>
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">${change.action_hint}</p>
+                    <p style="margin: 0; font-size: 14px;"><a href="${change.source_url}" style="color: #f39c12;">Learn more →</a></p>
                 </div>`;
             });
         }
@@ -184,6 +185,46 @@ export class SESEmailSender implements EmailSender {
                     <p style="margin: 0 0 8px 0;"><strong>${trend.item}</strong> (${trend.category})</p>
                     <p style="margin: 0 0 8px 0;">${trend.summary}</p>
                     <p style="margin: 0; font-size: 14px;"><a href="${trend.source_url}" style="color: #9b59b6;">Read more →</a></p>
+                </div>`;
+            });
+        }
+
+        // Trend Watchlist
+        if (scanResult.trend_watchlist && scanResult.trend_watchlist.length > 0) {
+            html += `<h2 style="color: #16a085; font-size: 20px; margin: 32px 0 16px 0;">Trend Watchlist (${scanResult.trend_watchlist.length})</h2>`;
+            scanResult.trend_watchlist.forEach((trend) => {
+                html += `
+                <div style="margin-bottom: 16px; padding: 16px; background-color: #f0faf8; border-left: 4px solid #16a085; border-radius: 4px;">
+                    <p style="margin: 0 0 8px 0;"><strong>${trend.topic}</strong> <span style="color: #16a085; font-size: 12px; text-transform: uppercase;">[${trend.trajectory}]</span></p>
+                    <p style="margin: 0 0 8px 0;">${trend.summary}</p>
+                    <p style="margin: 0; font-size: 14px;"><a href="${trend.source_url}" style="color: #16a085;">Explore →</a></p>
+                </div>`;
+            });
+        }
+
+        // Corporate - Hims & Hers
+        if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
+            html += `<h2 style="color: #2980b9; font-size: 20px; margin: 32px 0 16px 0;">Corporate - Hims & Hers (${scanResult.corporate_hims_hers.length})</h2>`;
+            scanResult.corporate_hims_hers.forEach((item) => {
+                html += `
+                <div style="margin-bottom: 16px; padding: 16px; background-color: #f0f7fb; border-left: 4px solid #2980b9; border-radius: 4px;">
+                    <p style="margin: 0 0 8px 0;"><strong>${item.item}</strong> <span style="color: #2980b9; font-size: 12px; text-transform: uppercase;">[${item.type}]</span></p>
+                    <p style="margin: 0 0 8px 0;">${item.summary}</p>
+                    <p style="margin: 0; font-size: 14px;"><a href="${item.source_url}" style="color: #2980b9;">View details →</a></p>
+                </div>`;
+            });
+        }
+
+        // Developer Experience
+        if (scanResult.developer_experience && scanResult.developer_experience.length > 0) {
+            html += `<h2 style="color: #27ae60; font-size: 20px; margin: 32px 0 16px 0;">Developer Experience (${scanResult.developer_experience.length})</h2>`;
+            scanResult.developer_experience.forEach((item) => {
+                html += `
+                <div style="margin-bottom: 16px; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #27ae60; border-radius: 4px;">
+                    <p style="margin: 0 0 8px 0;"><strong>${item.pattern_or_tool}</strong></p>
+                    <p style="margin: 0 0 8px 0;">${item.update}</p>
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">${item.relevance_to_platform}</p>
+                    <p style="margin: 0; font-size: 14px;"><a href="${item.source_url}" style="color: #27ae60;">Learn more →</a></p>
                 </div>`;
             });
         }
@@ -228,7 +269,8 @@ ${idx + 1}. ${signal.title}
                 .map(
                     (change) => `
 • ${change.service}: ${change.change}
-  ${change.action_hint}`,
+  ${change.action_hint}
+  Learn more: ${change.source_url}`,
                 )
                 .join('\n');
         }
@@ -242,6 +284,46 @@ ${idx + 1}. ${signal.title}
 • ${trend.item} (${trend.category})
   ${trend.summary}
   Read more: ${trend.source_url}`,
+                )
+                .join('\n');
+        }
+
+        // Trend Watchlist
+        if (scanResult.trend_watchlist && scanResult.trend_watchlist.length > 0) {
+            otherSectionsText += `\n\nTREND WATCHLIST (${scanResult.trend_watchlist.length})\n`;
+            otherSectionsText += scanResult.trend_watchlist
+                .map(
+                    (trend) => `
+• ${trend.topic} [${trend.trajectory.toUpperCase()}]
+  ${trend.summary}
+  Explore: ${trend.source_url}`,
+                )
+                .join('\n');
+        }
+
+        // Corporate - Hims & Hers
+        if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
+            otherSectionsText += `\n\nCORPORATE - HIMS & HERS (${scanResult.corporate_hims_hers.length})\n`;
+            otherSectionsText += scanResult.corporate_hims_hers
+                .map(
+                    (item) => `
+• ${item.item} [${item.type.toUpperCase()}]
+  ${item.summary}
+  View details: ${item.source_url}`,
+                )
+                .join('\n');
+        }
+
+        // Developer Experience
+        if (scanResult.developer_experience && scanResult.developer_experience.length > 0) {
+            otherSectionsText += `\n\nDEVELOPER EXPERIENCE (${scanResult.developer_experience.length})\n`;
+            otherSectionsText += scanResult.developer_experience
+                .map(
+                    (item) => `
+• ${item.pattern_or_tool}
+  ${item.update}
+  ${item.relevance_to_platform}
+  Learn more: ${item.source_url}`,
                 )
                 .join('\n');
         }

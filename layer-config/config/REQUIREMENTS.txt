@@ -35,7 +35,8 @@ Return a single JSON object:
       "topic": "",
       "summary": "",
       "trajectory": ["rising","stable","fading"],
-      "sources": ["",""]
+      "sources": ["",""],
+      "source_url": ""
     }
   ],
   "security_alerts": [
@@ -54,7 +55,8 @@ Return a single JSON object:
       "service": "",
       "change": "",
       "likely_effect": "",
-      "action_hint": ""
+      "action_hint": "",
+      "source_url": ""
     }
   ],
   "ai_trends": [
@@ -80,7 +82,8 @@ Return a single JSON object:
     {
       "pattern_or_tool": "",
       "update": "",
-      "relevance_to_platform": ""
+      "relevance_to_platform": "",
+      "source_url": ""
     }
   ],
   "raw_feed": [
@@ -327,7 +330,8 @@ Produce one JSON object with these keys:
       "topic": "",
       "summary": "",
       "trajectory": ["rising","stable","fading"],
-      "sources": ["",""]
+      "sources": ["",""],
+      "source_url": ""
     }
   ],
   "security_alerts": [
@@ -346,7 +350,8 @@ Produce one JSON object with these keys:
       "service": "",
       "change": "",
       "likely_effect": "",
-      "action_hint": ""
+      "action_hint": "",
+      "source_url": ""
     }
   ],
   "corporate_hims_hers": [
@@ -362,7 +367,8 @@ Produce one JSON object with these keys:
     {
       "pattern_or_tool": "",
       "update": "",
-      "relevance_to_platform": ""
+      "relevance_to_platform": "",
+      "source_url": ""
     }
   ],
   "raw_feed": [

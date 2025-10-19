@@ -76,6 +76,7 @@ jobs:
               ToEmailAddress=${{ secrets.TO_EMAIL_ADDRESS }} \
               FromEmailAddress=${{ secrets.FROM_EMAIL_ADDRESS }} \
               OpenAIApiKey=${{ secrets.OPENAI_API_KEY }} \
+              PerplexityApiKey=${{ secrets.PERPLEXITY_API_KEY }} \
               ScheduleExpression="${{ secrets.SCHEDULE_EXPRESSION || 'cron(0 5 * * ? *)' }}" \
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \

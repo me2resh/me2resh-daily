@@ -20,6 +20,12 @@ Parameters:
     Description: OpenAI API key for ChatGPT analysis
     NoEcho: true
 
+  PerplexityApiKey:
+    Type: String
+    Description: Perplexity API key for web research (optional)
+    NoEcho: true
+    Default: ""
+
 Globals:
   Function:
     Timeout: 900
@@ -33,6 +39,7 @@ Globals:
         TO_EMAIL_ADDRESS: !Ref ToEmailAddress
         FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
         OPENAI_API_KEY: !Ref OpenAIApiKey
+        PERPLEXITY_API_KEY: !Ref PerplexityApiKey
         CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
         REQUIREMENT_PATH: /opt/config/REQUIREMENTS.txt   # read from the layer
 

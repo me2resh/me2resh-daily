@@ -13,15 +13,30 @@ const sourceFetcher = new HttpSourceFetcher();
 const reportGenerator = new OpenAIReportGenerator();
 const emailSender = new SESEmailSender();
 
-export const lambdaHandler = async (event: ScheduledEvent): Promise<void> => {
+// Event interface that supports both scheduled events and manual test invocations
+interface DailyScanEvent extends Partial<ScheduledEvent> {
+    lookback_hours?: number; // Optional override for testing (e.g., 720 for 30 days)
+}
+
+export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
     logger.info('Daily scan Lambda triggered', {
         time: event.time,
         region: event.region,
+        lookbackHoursOverride: event.lookback_hours,
     });
 
     try {
         // Load configuration
         const config = configLoader.loadConfig();
+
+        // Apply lookback_hours override if provided in event
+        if (event.lookback_hours) {
+            logger.info('Overriding lookback_hours from event', {
+                original: config.scan_config.lookback_hours,
+                override: event.lookback_hours,
+            });
+            config.scan_config.lookback_hours = event.lookback_hours;
+        }
         logger.info('Configuration loaded', {
             topicCount: config.topics.length,
             emailTo: config.email.to_address,

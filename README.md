@@ -114,7 +114,7 @@ All configuration is managed through `layer-config/config/sources.yaml`. This si
 **Basic Settings:**
 - Email addresses (supports environment variables)
 - Scan schedule and timezone
-- **Lookback hours** (freshness window - default: 72 hours)
+- **Lookback hours** (freshness window - default: 24 hours for daily scans)
 - Max items per source
 
 **RSS Feeds:**
@@ -137,7 +137,7 @@ email:
 
 scan_config:
   timezone: "Europe/London"
-  lookback_hours: 72  # Adjust to change time span (24, 48, 72, 96, etc.)
+  lookback_hours: 24  # Default: 24 hours for daily scans (override via Lambda event for testing)
   enable_perplexity_research: true
 
 perplexity_research:
@@ -245,16 +245,13 @@ The application uses CloudWatch Events (EventBridge) cron expressions:
 
 Note: CloudWatch Events uses UTC. Adjust for your timezone accordingly.
 
-## Testing Locally
+## Testing
 
-### Invoke the Lambda locally
+### Testing via Lambda Console
 
-```bash
-sam local invoke DailyScanFunction --event events/scheduled-event.json
-```
+You can invoke the Lambda function directly from the AWS Console with custom `lookback_hours` for testing:
 
-Create `events/scheduled-event.json`:
-
+**Test with default 24 hours (scheduled event format):**
 ```json
 {
   "version": "0",
@@ -263,6 +260,38 @@ Create `events/scheduled-event.json`:
   "source": "aws.events",
   "time": "2025-10-18T05:00:00Z",
   "region": "eu-west-2"
+}
+```
+
+**Test with 30 days of history:**
+```json
+{
+  "lookback_hours": 720
+}
+```
+
+**Test with 7 days of history:**
+```json
+{
+  "lookback_hours": 168
+}
+```
+
+The `lookback_hours` parameter overrides the default from `sources.yaml`, useful for:
+- Initial testing with more historical data
+- Catching up after downtime
+- Testing different time windows
+
+### Testing Locally with SAM
+
+```bash
+sam local invoke DailyScanFunction --event events/test-30days.json
+```
+
+Create `events/test-30days.json`:
+```json
+{
+  "lookback_hours": 720
 }
 ```
 

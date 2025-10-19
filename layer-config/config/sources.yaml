@@ -10,7 +10,7 @@ email:
 scan_config:
   timezone: "Europe/London"
   scan_time: "05:00"
-  lookback_hours: 72  # Freshness window in hours - adjust to increase/decrease time span
+  lookback_hours: 24  # Freshness window in hours (default: 24 for daily scans, override via Lambda event for testing)
   max_items_per_source: 20  # Limit items per source to control costs
   enable_perplexity_research: true  # Enable Perplexity for additional coverage
 

@@ -3,7 +3,13 @@ import { logger } from '@/utils/logger';
 import { ScanResult } from '@/domain/scan-result';
 
 export interface EmailSender {
-    sendEmail(toAddress: string, fromAddress: string, subject: string, scanResult: ScanResult): Promise<void>;
+    sendEmail(
+        toAddress: string,
+        fromAddress: string,
+        subject: string,
+        scanResult: ScanResult,
+        reportUrl?: string,
+    ): Promise<string>;
 }
 
 export class SESEmailSender implements EmailSender {
@@ -18,10 +24,12 @@ export class SESEmailSender implements EmailSender {
         fromAddress: string,
         subject: string,
         scanResult: ScanResult,
-    ): Promise<void> {
+        reportUrl?: string,
+    ): Promise<string> {
         try {
-            const htmlBody = this.generateHtmlBody(scanResult);
-            const textBody = this.generateTextBody(scanResult);
+            const htmlBody = this.generateHtmlBody(scanResult, reportUrl);
+            const standaloneHtml = this.generateStandaloneHtml(scanResult);
+            const textBody = this.generateTextBody(scanResult, reportUrl);
 
             // Format sender with display name
             const source = `M2R <${fromAddress}>`;
@@ -62,13 +70,15 @@ export class SESEmailSender implements EmailSender {
                 to: toAddress,
                 topSignalsCount: scanResult.top_signals.length,
             });
+
+            return standaloneHtml;
         } catch (error) {
             logger.error('Failed to send email', { error, to: toAddress });
             throw error;
         }
     }
 
-    private generateHtmlBody(scanResult: ScanResult): string {
+    private generateHtmlBody(scanResult: ScanResult, reportUrl?: string): string {
         const topSignalsHtml = scanResult.top_signals
             .map(
                 (signal, idx) => `
@@ -139,6 +149,13 @@ export class SESEmailSender implements EmailSender {
 
                             <hr style="margin: 40px 0 20px 0; border: none; border-top: 1px solid #ddd;">
                             <p style="font-size: 12px; color: #999; margin: 0; text-align: center;">Generated with Me2resh Daily Intel Scan</p>
+                            ${
+                                reportUrl
+                                    ? `<p style="font-size: 12px; color: #999; margin: 8px 0 0 0; text-align: center;">
+                                View this report online: <a href="${reportUrl}" style="color: #0066cc;">Click here</a>
+                            </p>`
+                                    : ''
+                            }
                         </td>
                     </tr>
                 </table>
@@ -238,7 +255,12 @@ export class SESEmailSender implements EmailSender {
         return html;
     }
 
-    private generateTextBody(scanResult: ScanResult): string {
+    private generateStandaloneHtml(scanResult: ScanResult): string {
+        // Generate standalone HTML page (same as email body but without reportUrl link)
+        return this.generateHtmlBody(scanResult);
+    }
+
+    private generateTextBody(scanResult: ScanResult, reportUrl?: string): string {
         const topSignalsText = scanResult.top_signals
             .map(
                 (signal, idx) => `
@@ -349,6 +371,7 @@ ${otherSectionsText}
 
 ---
 Generated with Me2resh Daily Intel Scan | ${scanResult.timezone}
+${reportUrl ? `\nView this report online: ${reportUrl}` : ''}
         `;
     }
 

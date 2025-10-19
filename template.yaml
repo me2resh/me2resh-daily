@@ -42,8 +42,34 @@ Globals:
         PERPLEXITY_API_KEY: !Ref PerplexityApiKey
         CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
         REQUIREMENT_PATH: /opt/config/REQUIREMENTS.txt   # read from the layer
+        REPORTS_BUCKET_NAME: me2resh-daily-scan
 
 Resources:
+  ReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: me2resh-daily-scan
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  ReportsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ReportsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${ReportsBucket.Arn}/*'
+
   DailyConfigLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -70,6 +96,12 @@ Resources:
               Resource:
                 - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${FromEmailAddress}'
                 - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${ToEmailAddress}'
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:PutObjectAcl
+              Resource:
+                - !Sub '${ReportsBucket.Arn}/*'
             - Effect: Allow
               Action:
                 - logs:CreateLogGroup
@@ -110,6 +142,14 @@ Outputs:
   DailyScanFunctionRole:
     Description: IAM Role created for Daily Scan function
     Value: !GetAtt DailyScanFunctionRole.Arn
+
+  ReportsBucketName:
+    Description: S3 bucket name for reports
+    Value: !Ref ReportsBucket
+
+  ReportsBucketWebsiteURL:
+    Description: S3 bucket website URL
+    Value: !GetAtt ReportsBucket.WebsiteURL
 
   ScheduleExpressionOut:
     Description: Deployed EventBridge Scheduler expression

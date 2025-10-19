@@ -6,12 +6,14 @@ import { SESEmailSender } from '@/infrastructure/email-sender';
 import { OpenAIReportGenerator } from '@/infrastructure/openai-report-generator';
 import { HttpSourceFetcher } from '@/infrastructure/source-fetcher';
 import { PerplexityClient } from '@/infrastructure/perplexity-client';
+import { S3ReportStorage } from '@/infrastructure/report-storage';
 import { logger } from '@/utils/logger';
 
 const configLoader = ConfigLoader.getInstance();
 const sourceFetcher = new HttpSourceFetcher();
 const reportGenerator = new OpenAIReportGenerator();
 const emailSender = new SESEmailSender();
+const reportStorage = new S3ReportStorage();
 
 // Event interface that supports both scheduled events and manual test invocations
 interface DailyScanEvent extends Partial<ScheduledEvent> {
@@ -81,13 +83,26 @@ export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
             rawFeedCount: scanResult.raw_feed.length,
         });
 
-        // Send email with results
+        // Send email with results (first without report URL to get HTML)
         const subject = `${config.email.subject_prefix} — ${scanResult.date}`;
-        await emailSender.sendEmail(config.email.to_address, config.email.from_address, subject, scanResult);
+        const standaloneHtml = await emailSender.sendEmail(
+            config.email.to_address,
+            config.email.from_address,
+            subject,
+            scanResult,
+        );
 
         logger.info('Email sent successfully', {
             to: config.email.to_address,
             subject,
+        });
+
+        // Save report to S3
+        const reportUrl = await reportStorage.saveReport(scanResult.date, scanResult, standaloneHtml);
+
+        logger.info('Report saved to S3', {
+            reportUrl,
+            date: scanResult.date,
         });
     } catch (error) {
         logger.error('Daily scan failed', { error });

@@ -16,13 +16,19 @@ const emailSender = new SESEmailSender();
 // Event interface that supports both scheduled events and manual test invocations
 interface DailyScanEvent extends Partial<ScheduledEvent> {
     lookback_hours?: number; // Optional override for testing (e.g., 720 for 30 days)
+    detail?: {
+        lookback_hours?: number; // EventBridge puts custom params in detail object
+    };
 }
 
 export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
+    // Extract lookback_hours from either root level (direct invocation) or detail object (EventBridge)
+    const lookbackHoursOverride = event.lookback_hours || event.detail?.lookback_hours;
+
     logger.info('Daily scan Lambda triggered', {
         time: event.time,
         region: event.region,
-        lookbackHoursOverride: event.lookback_hours,
+        lookbackHoursOverride,
     });
 
     try {
@@ -30,12 +36,12 @@ export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
         const config = configLoader.loadConfig();
 
         // Apply lookback_hours override if provided in event
-        if (event.lookback_hours) {
+        if (lookbackHoursOverride) {
             logger.info('Overriding lookback_hours from event', {
                 original: config.scan_config.lookback_hours,
-                override: event.lookback_hours,
+                override: lookbackHoursOverride,
             });
-            config.scan_config.lookback_hours = event.lookback_hours;
+            config.scan_config.lookback_hours = lookbackHoursOverride;
         }
         logger.info('Configuration loaded', {
             topicCount: config.topics.length,

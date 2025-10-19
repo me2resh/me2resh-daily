@@ -95,8 +95,18 @@ CRITICAL: ALL FIELDS ARE REQUIRED
 - Every top_signal MUST have a meaningful "why_it_matters" explanation (1-2 sentences explaining business impact)
 - If you cannot determine why something matters, do NOT include it in top_signals
 - Every field must contain actual content - empty strings or "undefined" are NOT acceptable
-- LIMIT each category to a MAXIMUM of 5 items (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience)
-- Select the TOP 5 most important/relevant items for each category`;
+
+CRITICAL: CATEGORY LIMITS (HARD REQUIREMENT)
+- Each of these categories MUST contain EXACTLY 5 items (or fewer if insufficient data):
+  * top_signals: maximum 5 items
+  * trend_watchlist: maximum 5 items
+  * security_alerts: maximum 5 items
+  * aws_platform_changes: maximum 5 items
+  * ai_trends: maximum 5 items
+  * corporate_hims_hers: maximum 5 items
+  * developer_experience: maximum 5 items
+- This is NOT a total limit - each category gets its own allocation of up to 5 items
+- Prioritize the most important items within each category`;
     }
 
     private buildPrompt(params: ReportGenerationInput): string {
@@ -129,6 +139,16 @@ IMPORTANT RULES:
 6. Include ALL sections from the schema (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience, raw_feed)
 7. If a section has no items from raw_feed_input, include it as an empty array
 
+CATEGORY ITEM LIMITS (CRITICAL):
+- Each category can contain UP TO 5 items maximum (not 5 total across all categories)
+- top_signals: select up to 5 most critical items across ALL categories
+- trend_watchlist: select up to 5 emerging trends
+- security_alerts: select up to 5 most severe security issues
+- aws_platform_changes: select up to 5 most impactful AWS updates
+- ai_trends: select up to 5 most relevant AI developments
+- corporate_hims_hers: select up to 5 most important corporate updates
+- developer_experience: select up to 5 most valuable DX improvements
+
 CRITICAL FILTERING INSTRUCTIONS:
 - You have ${items.length} items in raw_feed_input covering the ${timeframeText} (${lookbackHours} hours)
 - These items come from TWO sources:
@@ -139,10 +159,11 @@ CRITICAL FILTERING INSTRUCTIONS:
 - Look for items matching these categories:
   * ai_trends: Items from NEJM AI, npj Digital Medicine, Nature, Hugging Face, OpenAI, AI healthcare journals, FDA/MHRA guidance
   * aws_platform_changes: Items from AWS What's New, AWS blogs, serverless updates
-  * security_alerts: Items with CVEs, security advisories, vulnerability disclosures
-  * developer_experience: Items from The New Stack, InfoQ, developer tools, framework releases
-  * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings, UK competitors (Zava, ASDA Online Doctor)
-  * Each category should contain maximum 5 items (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience)
+  * security_alerts: Items with CVEs, security advisories, vulnerability disclosures (maximum 5 items)
+  * developer_experience: Items from The New Stack, InfoQ, developer tools, framework releases (maximum 5 items)
+  * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings, UK competitors (maximum 5 items)
+- POPULATE MULTIPLE CATEGORIES - do not put all items in just one category
+- Each category has its own budget of up to 5 items
 - If raw_feed_input contains items from sources like "HL7 Blog", "The New Stack", "Nature", "Perplexity Research", etc., include them in appropriate categories
 - Diversify your selection across all available categories based on the source names in raw_feed_input
 - Perplexity Research items provide broader coverage including regulatory updates, competitive intelligence, and topics without RSS feeds

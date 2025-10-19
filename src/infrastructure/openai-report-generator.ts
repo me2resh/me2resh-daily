@@ -94,7 +94,9 @@ CRITICAL: ALL FIELDS ARE REQUIRED
 - NEVER use "undefined" or null for any field
 - Every top_signal MUST have a meaningful "why_it_matters" explanation (1-2 sentences explaining business impact)
 - If you cannot determine why something matters, do NOT include it in top_signals
-- Every field must contain actual content - empty strings or "undefined" are NOT acceptable`;
+- Every field must contain actual content - empty strings or "undefined" are NOT acceptable
+- LIMIT each category to a MAXIMUM of 5 items (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience)
+- Select the TOP 5 most important/relevant items for each category`;
     }
 
     private buildPrompt(params: ReportGenerationInput): string {
@@ -140,7 +142,7 @@ CRITICAL FILTERING INSTRUCTIONS:
   * security_alerts: Items with CVEs, security advisories, vulnerability disclosures
   * developer_experience: Items from The New Stack, InfoQ, developer tools, framework releases
   * corporate_hims_hers: Items about Hims & Hers company news, earnings, filings, UK competitors (Zava, ASDA Online Doctor)
-  * top_signals: The 5 most important items across ANY category (not just AWS)
+  * Each category should contain maximum 5 items (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience)
 - If raw_feed_input contains items from sources like "HL7 Blog", "The New Stack", "Nature", "Perplexity Research", etc., include them in appropriate categories
 - Diversify your selection across all available categories based on the source names in raw_feed_input
 - Perplexity Research items provide broader coverage including regulatory updates, competitive intelligence, and topics without RSS feeds

@@ -88,7 +88,7 @@ Return a single JSON object:
   ]
 }
 
-	•	Max 5 top_signals.
+	•	Max 5 items per category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience).
 	•	Dates must be ISO.
 	•	Deduplicate across sources.
 	•	Always include empty arrays for sections with no updates.
@@ -241,7 +241,7 @@ For each source:
 📨 Delivery Instructions
 	•	Subject: Zavva Platform & Architecture Daily — {YYYY-MM-DD}
 	•	Body:
-	1.	Plain-English bullet list of Top 3–5 signals.
+	1.	Plain-English bullet list of Top 5 signals from each category.
 	2.	Full JSON object (monospaced).
 	3.	Optional link list of raw sources at the end.
 
@@ -371,7 +371,7 @@ Produce one JSON object with these keys:
 }
 
 Rules:
-	•	Top 5 items in top_signals max.
+	•	Max 5 items per category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience).
 	•	Dates in ISO.
 	•	Deduplicate identical stories across outlets.
 	•	If nothing new for a section, include an empty array for that section.

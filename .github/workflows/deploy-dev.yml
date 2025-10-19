@@ -68,16 +68,18 @@ jobs:
 
       - name: SAM Deploy
         run: |
+          # Build parameter overrides, only including PerplexityApiKey if it's set
+          PARAMS="ToEmailAddress=${{ secrets.TO_EMAIL_ADDRESS }} FromEmailAddress=${{ secrets.FROM_EMAIL_ADDRESS }} OpenAIApiKey=${{ secrets.OPENAI_API_KEY }}"
+          if [ -n "${{ secrets.PERPLEXITY_API_KEY }}" ]; then
+            PARAMS="$PARAMS PerplexityApiKey=${{ secrets.PERPLEXITY_API_KEY }}"
+          fi
+          PARAMS="$PARAMS ScheduleExpression=\"cron(0 5 * * ? *)\""
+
           sam deploy \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }} \
             --resolve-s3 \
-            --parameter-overrides \
-              ToEmailAddress=${{ secrets.TO_EMAIL_ADDRESS }} \
-              FromEmailAddress=${{ secrets.FROM_EMAIL_ADDRESS }} \
-              OpenAIApiKey=${{ secrets.OPENAI_API_KEY }} \
-              PerplexityApiKey=${{ secrets.PERPLEXITY_API_KEY }} \
-              ScheduleExpression="${{ secrets.SCHEDULE_EXPRESSION || 'cron(0 5 * * ? *)' }}" \
+            --parameter-overrides $PARAMS \
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \

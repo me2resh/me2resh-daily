@@ -66,6 +66,7 @@ const ALLOWLIST = new Set([
     'thoughtworks.com',
     'infoq.com',
     'thenewstack.io',
+    'tldr.tech',
 
     // Stack releases
     'go.dev',

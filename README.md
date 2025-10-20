@@ -17,49 +17,134 @@ This application is designed for Director-level technical leadership (Platform &
 
 ### High-Level Data Flow
 
-```
-┌──────────────────┐
-│  Daily Scan      │
-│  Lambda Trigger  │
-└────────┬─────────┘
-         │
-         ├──► RSS Feeds (35+ sources) ──────┐
-         │    - Fast, validated URLs        │
-         │    - Specific feeds              │
-         │                                  │
-         └──► Perplexity Research ─────────┤
-              - ONE combined query          │
-              - All 7 categories covered    │
-              - Web citations               │
-                                            ▼
-                                ┌───────────────────┐
-                                │  Merge & Dedupe   │
-                                └─────────┬─────────┘
-                                          │
-                                          ▼
-                                ┌───────────────────┐
-                                │  ChatGPT Analysis │
-                                │  (gpt-4o-mini)    │
-                                └─────────┬─────────┘
-                                          │
-                                          ▼
-                                ┌───────────────────┐
-                                │   Email Report    │
-                                └─────────┬─────────┘
-                                          │
-                                          ▼
-                                ┌───────────────────┐
-                                │  S3 Storage       │
-                                │  (HTML + JSON)    │
-                                └───────────────────┘
-```
-
 **Simplified View:**
 ```
-RSS Feeds (35+ sources) ──┐
+RSS Feeds (41+ sources) ──┐
                           ├──→ Merge → ChatGPT Analysis → Email → S3 Archive
 Perplexity Research ──────┘                                      (HTML + JSON)
 (ONE combined query)
+```
+
+### Detailed Data Flow with Filtering & Prioritization
+
+```mermaid
+graph TD
+    Start([Lambda Trigger<br/>Daily 05:00 UTC]) --> Config[Load Config<br/>sources.yaml]
+
+    Config --> ParallelFetch{Parallel Data<br/>Collection}
+
+    %% RSS Feed Path
+    ParallelFetch -->|RSS Track| RSS[Fetch RSS Feeds<br/>41+ sources]
+    RSS --> RSSParse[Parse RSS Items<br/>Max 50/feed]
+    RSSParse --> TimeFilter[Time Filter<br/>lookback_hours: 24h]
+    TimeFilter --> URLCanon[URL Canonicalization<br/>• Force HTTPS<br/>• Remove tracking params<br/>• Normalize paths]
+    URLCanon --> DomainCheck{Domain<br/>Allowlist?}
+    DomainCheck -->|✓ Trusted| HTTPCheck[HTTP Validation<br/>HEAD/GET request]
+    DomainCheck -->|✗ Unknown| Drop1[Drop Item]
+    HTTPCheck -->|200-299| RSSValid[ValidatedRawFeed]
+    HTTPCheck -->|4xx/5xx| Drop2[Drop Item]
+
+    %% Perplexity Path
+    ParallelFetch -->|Research Track| PerplexCheck{Perplexity<br/>Enabled?}
+    PerplexCheck -->|Yes| BuildQuery[Build Dynamic Query<br/>All 7 categories<br/>lookback_hours]
+    PerplexCheck -->|No| SkipPerp[Skip Research]
+    BuildQuery --> PerplexAPI[Perplexity API<br/>sonar model<br/>temp: 0.2]
+    PerplexAPI --> ParseCite[Parse Citations<br/>Extract URLs + dates]
+    ParseCite --> PerplexValid[PerplexityResearchItem]
+
+    %% Merge Stage
+    RSSValid --> Merge[Merge Items<br/>RSS + Perplexity]
+    PerplexValid --> Merge
+    SkipPerp --> Merge
+
+    Merge --> Dedup[Deduplicate by URL<br/>Keep earlier published_at]
+    Dedup --> EmptyCheck{Items > 0?}
+    EmptyCheck -->|No| EmptyReport[Return Empty Report<br/>Skip ChatGPT to save cost]
+    EmptyCheck -->|Yes| BuildInput[Build Raw Feed Input<br/>JSON structure for ChatGPT]
+
+    %% ChatGPT Analysis
+    BuildInput --> ChatGPT[ChatGPT Analysis<br/>gpt-4o-mini<br/>temp: 0.3]
+
+    ChatGPT --> Categorize{Categorize Items<br/>Max 5 per category}
+
+    Categorize --> TopSignals[Top Signals<br/>• Severity: high/medium/low<br/>• Impact tags<br/>• why_it_matters]
+    Categorize --> AITrends[AI Trends<br/>• regulatory/clinical/platform/tooling<br/>• Healthcare + general AI]
+    Categorize --> AWSChanges[AWS Platform Changes<br/>• Lambda, API Gateway, etc<br/>• Performance, pricing, security]
+    Categorize --> Security[Security Alerts<br/>• CVEs for stack<br/>• CVSS, affected versions]
+    Categorize --> Corporate[Corporate Hims & Hers<br/>• Earnings, filings, M&A<br/>• Competitor moves]
+    Categorize --> DevEx[Developer Experience<br/>• DX tooling, frameworks<br/>• Productivity improvements]
+    Categorize --> Trends[Trend Watchlist<br/>• rising/stable/fading<br/>• Cross-source validation]
+
+    %% Final Output
+    TopSignals --> Report[ScanResult<br/>7 categories + raw_feed]
+    AITrends --> Report
+    AWSChanges --> Report
+    Security --> Report
+    Corporate --> Report
+    DevEx --> Report
+    Trends --> Report
+
+    Report --> Email[Send Email<br/>AWS SES<br/>HTML + Text]
+    Email --> S3Store[Save to S3<br/>• reports/date/report.html<br/>• reports/date/data.json<br/>• index.html]
+
+    S3Store --> Done([Complete<br/>Report URL returned])
+    EmptyReport --> Done
+
+    %% Styling
+    classDef filterNode fill:#ff9999,stroke:#cc0000,stroke-width:2px
+    classDef processNode fill:#99ccff,stroke:#0066cc,stroke-width:2px
+    classDef outputNode fill:#99ff99,stroke:#00cc00,stroke-width:2px
+    classDef decisionNode fill:#ffcc99,stroke:#ff9900,stroke-width:2px
+
+    class TimeFilter,URLCanon,DomainCheck,HTTPCheck,Dedup filterNode
+    class RSS,RSSParse,BuildQuery,PerplexAPI,ParseCite,BuildInput,ChatGPT,Categorize processNode
+    class TopSignals,AITrends,AWSChanges,Security,Corporate,DevEx,Trends,Report,Email,S3Store outputNode
+    class ParallelFetch,PerplexCheck,EmptyCheck decisionNode
+```
+
+### Key Filtering & Prioritization Mechanisms
+
+| Stage | Filter/Mechanism | Purpose | Details |
+|-------|------------------|---------|---------|
+| **1. Temporal** | `lookback_hours` | Freshness | Default 24h, configurable via Lambda event |
+| **2. Volume Control** | Max items per source | Cost optimization | 20 items per RSS feed, 50 parsed max |
+| **3. URL Canonicalization** | Normalize URLs | Deduplication | HTTPS, remove tracking params, normalize paths |
+| **4. Domain Allowlist** | Trusted sources only | Quality control | Curated list: AWS, HL7, FDA, MHRA, GitHub, etc. |
+| **5. HTTP Validation** | URL accessibility | Link integrity | HEAD/GET check, 10s timeout, 200-299 status |
+| **6. Deduplication** | By canonical URL | Avoid redundancy | Keep item with earlier published_at |
+| **7. Diversification** | Cross-category balance | Comprehensive coverage | ChatGPT instructed to populate ALL categories |
+| **8. Severity Scoring** | High/Medium/Low | Executive focus | High: compliance, breaking changes, exploits |
+| **9. Impact Tagging** | 6 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy |
+| **10. Category Limits** | Max 5 per category | Signal vs noise | Independent limits, not 5 total across all |
+| **11. URL Integrity** | Source validation | No hallucination | All URLs must exist in raw_feed_input |
+| **12. Empty Check** | Skip if no items | Cost optimization | Avoid ChatGPT call on empty input |
+
+### Data Flow Example (48 Items → Final Report)
+
+```
+INPUT:
+  RSS Feeds: 45 items (after time filtering from 200+ parsed)
+  Perplexity: 8 items (citations from combined query)
+  Total: 53 items
+
+FILTERING:
+  ✓ Domain allowlist: 53 → 50 (3 unknown domains dropped)
+  ✓ HTTP validation: 50 → 48 (2 broken links dropped)
+  ✓ Deduplication: 48 → 45 (3 URL duplicates merged)
+
+CHATGPT CATEGORIZATION (45 unique items):
+  → Top Signals: 5 items (cross-category critical)
+  → AI Trends: 5 items (2 clinical, 2 regulatory, 1 platform)
+  → AWS Platform Changes: 5 items (Lambda x2, EventBridge, DynamoDB, IAM)
+  → Security Alerts: 3 items (2 CVEs for NestJS, 1 for Golang)
+  → Corporate Hims & Hers: 2 items (earnings, competitor move)
+  → Developer Experience: 4 items (DX tooling, framework updates)
+  → Trend Watchlist: 5 items (3 rising, 1 stable, 1 fading)
+
+OUTPUT:
+  Email: HTML report sent via SES
+  S3: reports/2025-10-20/report.html + data.json
+  Total items in report: 29 (from 45 analyzed, from 53 collected)
 ```
 
 ### Code Architecture

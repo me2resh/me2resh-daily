@@ -56,6 +56,11 @@ topics:
         rss_url: "https://feeds.feedburner.com/AmazonWebServicesBlogMachineLearning"
         type: "rss"
 
+      - name: "TLDR AI Newsletter"
+        url: "https://tldr.tech/ai"
+        rss_url: "https://tldr.tech/api/rss/ai"
+        type: "rss"
+
   # ============================================================================
   # 2. AWS & SERVERLESS PLATFORM
   # ============================================================================
@@ -151,6 +156,11 @@ topics:
         rss_url: "https://www.tenable.com/cve/feeds/newest"
         type: "rss"
 
+      - name: "TLDR InfoSec Newsletter"
+        url: "https://tldr.tech/infosec"
+        rss_url: "https://tldr.tech/api/rss/infosec"
+        type: "rss"
+
   # ============================================================================
   # 5. STACK RELEASES (GitHub Atom Feeds)
   # ============================================================================
@@ -208,6 +218,26 @@ topics:
       - name: "The New Stack"
         url: "https://thenewstack.io/"
         rss_url: "https://thenewstack.io/feed/"
+        type: "rss"
+
+      - name: "TLDR Dev Newsletter"
+        url: "https://tldr.tech/dev"
+        rss_url: "https://tldr.tech/api/rss/dev"
+        type: "rss"
+
+      - name: "TLDR DevOps Newsletter"
+        url: "https://tldr.tech/devops"
+        rss_url: "https://tldr.tech/api/rss/devops"
+        type: "rss"
+
+      - name: "TLDR Product Newsletter"
+        url: "https://tldr.tech/product"
+        rss_url: "https://tldr.tech/api/rss/product"
+        type: "rss"
+
+      - name: "TLDR IT Newsletter"
+        url: "https://tldr.tech/it"
+        rss_url: "https://tldr.tech/api/rss/it"
         type: "rss"
 
   # ============================================================================

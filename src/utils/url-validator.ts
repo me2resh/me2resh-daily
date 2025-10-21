@@ -135,9 +135,24 @@ export function isDomainAllowed(url: string): boolean {
 
 /**
  * Validate URL with HTTP HEAD check
+ * Can be disabled via ENABLE_URL_VALIDATION environment variable
  */
 export async function validateUrl(rawUrl: string): Promise<ValidatedUrl> {
     const checkedAt = new Date().toISOString();
+
+    // Check if URL validation is disabled
+    const enableValidation = process.env.ENABLE_URL_VALIDATION !== 'false';
+
+    if (!enableValidation) {
+        // Short-circuit: skip all validation, accept all URLs
+        logger.debug('URL validation disabled, accepting all URLs', { url: rawUrl });
+        return {
+            url: canonicalizeUrl(rawUrl),
+            status: 200,
+            checkedAt,
+            isValid: true,
+        };
+    }
 
     try {
         // Canonicalize first

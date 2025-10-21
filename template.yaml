@@ -26,6 +26,14 @@ Parameters:
     NoEcho: true
     Default: ""
 
+  EnableUrlValidation:
+    Type: String
+    Description: Enable URL validation (domain allowlist + HTTP checks). Set to 'false' to skip validation.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
 Globals:
   Function:
     Timeout: 900
@@ -43,6 +51,7 @@ Globals:
         CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
         REQUIREMENT_PATH: /opt/config/REQUIREMENTS.txt   # read from the layer
         REPORTS_BUCKET_NAME: me2resh-daily-scan
+        ENABLE_URL_VALIDATION: !Ref EnableUrlValidation
 
 Resources:
   ReportsBucket:

@@ -109,8 +109,8 @@ graph TD
 | **1. Temporal** | `lookback_hours` | Freshness | Default 24h, configurable via Lambda event |
 | **2. Volume Control** | Max items per source | Cost optimization | 20 items per RSS feed, 50 parsed max |
 | **3. URL Canonicalization** | Normalize URLs | Deduplication | HTTPS, remove tracking params, normalize paths |
-| **4. Domain Allowlist** | Trusted sources only | Quality control | Curated list: AWS, HL7, FDA, MHRA, GitHub, etc. |
-| **5. HTTP Validation** | URL accessibility | Link integrity | HEAD/GET check, 10s timeout, 200-299 status |
+| **4. Domain Allowlist** | Trusted sources only | Quality control | Optional (disabled by default): AWS, HL7, FDA, MHRA, GitHub, etc. |
+| **5. HTTP Validation** | URL accessibility | Link integrity | Optional (disabled by default): HEAD/GET check, 10s timeout, 200-299 status |
 | **6. Deduplication** | By canonical URL | Avoid redundancy | Keep item with earlier published_at |
 | **7. Diversification** | Cross-category balance | Comprehensive coverage | ChatGPT instructed to populate ALL categories |
 | **8. Severity Scoring** | High/Medium/Low | Executive focus | High: compliance, breaking changes, exploits |
@@ -306,7 +306,8 @@ You'll be prompted for:
 - ToEmailAddress (email to receive reports)
 - FromEmailAddress (verified SES email to send from)
 - OpenAIApiKey (your OpenAI API key - will be hidden)
-- ScheduleExpression (default: `cron(0 5 * * ? *)` for 5:00 AM UTC)
+- PerplexityApiKey (optional, for web research)
+- EnableUrlValidation (default: `false` - disable domain allowlist and HTTP validation for faster processing)
 
 3. For subsequent deployments:
 
@@ -323,9 +324,31 @@ sam deploy \
     ToEmailAddress=recipient@example.com \
     FromEmailAddress=sender@example.com \
     OpenAIApiKey=sk-your-api-key-here \
-    ScheduleExpression="cron(0 5 * * ? *)" \
+    PerplexityApiKey=pplx-your-api-key-here \
+    EnableUrlValidation=false \
   --capabilities CAPABILITY_IAM \
   --region eu-west-2
+```
+
+### URL Validation (Optional Feature)
+
+By default, URL validation is **disabled** (`EnableUrlValidation=false`) for faster processing and broader source coverage.
+
+**When disabled** (recommended):
+- All RSS feed URLs are accepted without domain allowlist checking
+- No HTTP HEAD/GET validation performed
+- Faster scan execution (saves ~30-60 seconds per scan)
+- More flexibility to add new sources without updating code
+
+**When enabled** (`EnableUrlValidation=true`):
+- Only domains in the curated allowlist are accepted (see `src/utils/url-validator.ts`)
+- HTTP HEAD/GET check verifies each URL is accessible
+- Provides additional quality control and link integrity
+- Useful for production environments with strict quality requirements
+
+To enable URL validation after deployment:
+```bash
+sam deploy --parameter-overrides EnableUrlValidation=true
 ```
 
 ## Schedule Configuration

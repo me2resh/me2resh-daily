@@ -2,8 +2,21 @@ import { S3 } from '@aws-sdk/client-s3';
 import { ScanResult } from '@/domain/scan-result';
 import { logger } from '@/utils/logger';
 
+export interface PromptLog {
+    perplexity?: {
+        query: string;
+        timestamp: string;
+    };
+    chatgpt?: {
+        system_prompt: string;
+        user_prompt: string;
+        timestamp: string;
+    };
+}
+
 export interface ReportStorage {
     saveReport(date: string, scanResult: ScanResult, htmlBody: string): Promise<string>;
+    savePrompts(date: string, prompts: PromptLog): Promise<void>;
 }
 
 export class S3ReportStorage implements ReportStorage {
@@ -43,6 +56,25 @@ export class S3ReportStorage implements ReportStorage {
         } catch (error) {
             logger.error('Failed to save report to S3', { error, date });
             throw error;
+        }
+    }
+
+    async savePrompts(date: string, prompts: PromptLog): Promise<void> {
+        try {
+            await this.uploadFile(
+                `reports/${date}/prompts.json`,
+                JSON.stringify(prompts, null, 2),
+                'application/json',
+            );
+
+            logger.info('Prompts saved to S3', {
+                date,
+                hasPerplexity: !!prompts.perplexity,
+                hasChatGPT: !!prompts.chatgpt,
+            });
+        } catch (error) {
+            logger.error('Failed to save prompts to S3', { error, date });
+            // Don't throw - prompt saving is non-critical
         }
     }
 

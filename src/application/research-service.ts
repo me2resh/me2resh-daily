@@ -8,27 +8,32 @@ interface ResearchTopic {
     extract: string[];
 }
 
+export interface ResearchResult {
+    items: PerplexityResearchItem[];
+    query: string;
+}
+
 export class ResearchService {
     constructor(private config: SourceConfiguration, private perplexityClient: PerplexityClient) {}
 
-    async performResearch(): Promise<PerplexityResearchItem[]> {
+    async performResearch(): Promise<ResearchResult> {
         // Check if Perplexity research is enabled
         if (!this.config.scan_config.enable_perplexity_research) {
             logger.info('Perplexity research disabled in config');
-            return [];
+            return { items: [], query: '' };
         }
 
         const perplexityConfig = (this.config as Record<string, any>).perplexity_research;
         if (!perplexityConfig?.enabled) {
             logger.info('Perplexity research disabled in perplexity_research.enabled');
-            return [];
+            return { items: [], query: '' };
         }
 
         // Build query dynamically from REQUIREMENTS.txt + YAML config
         const query = this.buildResearchQuery(perplexityConfig);
         if (!query) {
             logger.warn('Failed to build research query');
-            return [];
+            return { items: [], query: '' };
         }
 
         logger.info('Starting Perplexity research with dynamic query');
@@ -48,13 +53,13 @@ export class ResearchService {
                 itemCount: researchItems.length,
             });
 
-            return researchItems;
+            return { items: researchItems, query };
         } catch (error) {
             logger.error('Perplexity research failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
             // Don't throw - continue with RSS-only results
-            return [];
+            return { items: [], query };
         }
     }
 

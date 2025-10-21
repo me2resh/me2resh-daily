@@ -73,7 +73,7 @@ export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
 
         // Perform the scan - Fetch RSS feeds + Perplexity research, then analyze with ChatGPT
         const scanService = new ScanService(config, sourceFetcher, reportGenerator, researchService);
-        const scanResult = await scanService.performScan();
+        const { scanResult, prompts } = await scanService.performScan();
 
         logger.info('Scan completed successfully', {
             date: scanResult.date,
@@ -102,6 +102,13 @@ export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
 
         logger.info('Report saved to S3', {
             reportUrl,
+            date: scanResult.date,
+        });
+
+        // Save prompts to S3
+        await reportStorage.savePrompts(scanResult.date, prompts);
+
+        logger.info('Prompts saved to S3', {
             date: scanResult.date,
         });
     } catch (error) {

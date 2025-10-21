@@ -374,10 +374,12 @@ s3://me2resh-daily-scan/
 └── reports/
     ├── 2025-10-19/
     │   ├── report.html            # Viewable in browser
-    │   └── data.json              # Original ScanResult data
+    │   ├── data.json              # Original ScanResult data
+    │   └── prompts.json           # Perplexity + ChatGPT prompts
     ├── 2025-10-20/
     │   ├── report.html
-    │   └── data.json
+    │   ├── data.json
+    │   └── prompts.json
     └── ...
 ```
 
@@ -389,13 +391,16 @@ s3://me2resh-daily-scan/
 
 **JSON Data**: https://me2resh-daily-scan.s3.eu-west-1.amazonaws.com/reports/2025-10-19/data.json
 
+**Prompts**: https://me2resh-daily-scan.s3.eu-west-1.amazonaws.com/reports/2025-10-19/prompts.json
+
 ### Features
 
 - **Public Access**: No authentication required - share links directly
 - **Permanent Storage**: Reports kept forever (no lifecycle policy)
-- **Dual Format**: HTML for viewing, JSON for programmatic access
+- **Triple Format**: HTML for viewing, JSON for programmatic access, prompts.json for debugging
 - **Email Integration**: Every email includes a "View this report online" footer link
 - **Same Styling**: Web reports use identical styling to email for consistency
+- **Prompt Transparency**: Every scan saves the exact Perplexity query and ChatGPT prompts (system + user) for debugging and refinement
 
 ### Use Cases
 
@@ -404,6 +409,7 @@ s3://me2resh-daily-scan/
 - Historical analysis and trend tracking
 - Offline access to past reports
 - Integration with BI tools or data pipelines
+- **Debug and refine prompts** by examining `prompts.json` to see exactly what was sent to Perplexity and ChatGPT
 
 ## Testing
 

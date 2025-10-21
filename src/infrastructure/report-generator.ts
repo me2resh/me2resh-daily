@@ -17,6 +17,12 @@ export interface ReportGenerationInput {
     lookback_hours?: number; // Optional: used to customize ChatGPT filtering instructions
 }
 
+export interface ReportGenerationResult {
+    report: ScanResult;
+    systemPrompt: string;
+    userPrompt: string;
+}
+
 export interface ReportGenerator {
-    generateReport(params: ReportGenerationInput): Promise<ScanResult>;
+    generateReport(params: ReportGenerationInput): Promise<ReportGenerationResult>;
 }

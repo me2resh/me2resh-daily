@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import OpenAI from 'openai';
 import { ScanResult } from '@/domain/scan-result';
-import { ReportGenerationInput, ReportGenerator } from './report-generator';
+import { ReportGenerationInput, ReportGenerator, ReportGenerationResult } from './report-generator';
 import { logger } from '@/utils/logger';
 
 export class OpenAIReportGenerator implements ReportGenerator {
@@ -32,8 +32,9 @@ export class OpenAIReportGenerator implements ReportGenerator {
         this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
     }
 
-    async generateReport(params: ReportGenerationInput): Promise<ScanResult> {
-        const prompt = this.buildPrompt(params);
+    async generateReport(params: ReportGenerationInput): Promise<ReportGenerationResult> {
+        const systemPrompt = this.buildSystemPrompt(params);
+        const userPrompt = this.buildPrompt(params);
 
         logger.info('Requesting report from OpenAI', {
             model: this.model,
@@ -46,11 +47,11 @@ export class OpenAIReportGenerator implements ReportGenerator {
             messages: [
                 {
                     role: 'system',
-                    content: this.buildSystemPrompt(params),
+                    content: systemPrompt,
                 },
                 {
                     role: 'user',
-                    content: prompt,
+                    content: userPrompt,
                 },
             ],
         });
@@ -61,8 +62,12 @@ export class OpenAIReportGenerator implements ReportGenerator {
         }
 
         try {
-            const parsed = JSON.parse(content) as ScanResult;
-            return parsed;
+            const report = JSON.parse(content) as ScanResult;
+            return {
+                report,
+                systemPrompt,
+                userPrompt,
+            };
         } catch (error) {
             logger.error('Failed to parse OpenAI response as JSON', { error, content });
             throw new Error('OpenAI response was not valid JSON');

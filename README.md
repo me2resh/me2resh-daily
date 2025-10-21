@@ -113,11 +113,13 @@ graph TD
 | **5. HTTP Validation** | URL accessibility | Link integrity | Optional (disabled by default): HEAD/GET check, 10s timeout, 200-299 status |
 | **6. Deduplication** | By canonical URL | Avoid redundancy | Keep item with earlier published_at |
 | **7. Diversification** | Cross-category balance | Comprehensive coverage | ChatGPT instructed to populate ALL categories |
-| **8. Severity Scoring** | High/Medium/Low | Executive focus | High: compliance, breaking changes, exploits |
-| **9. Impact Tagging** | 6 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy |
-| **10. Category Limits** | Max 5 per category | Signal vs noise | Independent limits, not 5 total across all |
-| **11. URL Integrity** | Source validation | No hallucination | All URLs must exist in raw_feed_input |
-| **12. Empty Check** | Skip if no items | Cost optimization | Avoid ChatGPT call on empty input |
+| **8. Healthcare Cap** | 40% max combined | Prevent medical bias | Healthcare (AI+FHIR) ≤ 40% of total items |
+| **9. Priority Order** | Topic-based ranking | Executive focus | AWS/DX first, then security, then healthcare |
+| **10. Severity Scoring** | High/Medium/Low | Impact assessment | High: compliance, breaking changes, exploits |
+| **11. Impact Tagging** | 6 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy |
+| **12. Category Limits** | Max 5 per category | Signal vs noise | Independent limits, not 5 total across all |
+| **13. URL Integrity** | Source validation | No hallucination | All URLs must exist in raw_feed_input |
+| **14. Empty Check** | Skip if no items | Cost optimization | Avoid ChatGPT call on empty input |
 
 ### Data Flow Example (48 Items → Final Report)
 
@@ -133,18 +135,30 @@ FILTERING:
   ✓ Deduplication: 48 → 45 (3 URL duplicates merged)
 
 CHATGPT CATEGORIZATION (45 unique items):
-  → Top Signals: 5 items (cross-category critical)
-  → AI Trends: 5 items (2 clinical, 2 regulatory, 1 platform)
-  → AWS Platform Changes: 5 items (Lambda x2, EventBridge, DynamoDB, IAM)
-  → Security Alerts: 3 items (2 CVEs for NestJS, 1 for Golang)
-  → Corporate Hims & Hers: 2 items (earnings, competitor move)
-  → Developer Experience: 4 items (DX tooling, framework updates)
-  → Trend Watchlist: 5 items (3 rising, 1 stable, 1 fading)
+  Priority Order Applied:
+  1. AWS/Serverless: 5 items selected first
+  2. Developer Experience: 5 items selected second
+  3. Security: 5 items selected third
+  4. AI (platform-impacting): 3 items selected
+  5. FHIR/Interop: 2 items selected
+  6. Corporate: 2 items selected
+
+  Healthcare Cap Check: (3 AI + 2 FHIR) / 22 total = 23% ✓ (under 40% limit)
+
+  Final Distribution:
+  → Top Signals: 5 items (AWS x2, Security x2, DX x1 - prioritized by impact)
+  → AWS Platform Changes: 5 items (Lambda, EventBridge, DynamoDB, IAM, CloudWatch)
+  → Developer Experience: 5 items (Backstage, platform engineering, DORA metrics)
+  → Security Alerts: 5 items (CVEs for npm, Go, PHP + AWS ALAS)
+  → AI Trends: 3 items (Bedrock, model serving, regulatory deadline)
+  → Trend Watchlist: 5 items (rising DX trends, AWS adoption patterns)
+  → Corporate Hims & Hers: 2 items (earnings, product launch)
 
 OUTPUT:
   Email: HTML report sent via SES
-  S3: reports/2025-10-20/report.html + data.json
-  Total items in report: 29 (from 45 analyzed, from 53 collected)
+  S3: reports/2025-10-20/report.html + data.json + prompts.json
+  Total items in report: 30 (from 45 analyzed, from 53 collected)
+  Healthcare items: 5 (17% of total - well under 40% cap)
 ```
 
 ### Code Architecture
@@ -208,7 +222,14 @@ All configuration is managed through `layer-config/config/sources.yaml`. This si
 - Email addresses (supports environment variables)
 - Scan schedule and timezone
 - **Lookback hours** (freshness window - default: 24 hours for daily scans)
-- Max items per source
+- Max items per source (20 items default)
+
+**Diversity & Rebalancing Controls:**
+- **Max items per category**: 5 (hard cap for each section)
+- **Healthcare combined cap**: 40% maximum (prevents medical content dominance)
+- **Rebalance mode**: Enabled (automatically balances skewed input)
+- **Primary sources first**: Enabled (prioritizes official sources)
+- **Drop undated commentary**: Enabled (filters noise)
 
 **RSS Feeds:**
 - 41+ pre-configured RSS sources across 7 categories

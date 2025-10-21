@@ -14,6 +14,13 @@ scan_config:
   max_items_per_source: 20  # Limit items per source to control costs
   enable_perplexity_research: true  # Enable Perplexity for additional coverage
 
+  # Diversity & Rebalancing Controls
+  max_items_per_category: 5  # Hard cap per category (top_signals, aws_platform_changes, etc.)
+  healthcare_combined_cap: 0.4  # Max 40% of total items from healthcare/AI/FHIR combined
+  rebalance_on: true  # Enable automatic rebalancing if input is skewed
+  primary_sources_first: true  # Prioritize primary sources (AWS official, NVD, CISA, etc.)
+  drop_undated_commentary: true  # Drop commentary/opinion pieces without dates
+
 topics:
   # ============================================================================
   # 1. AI IN HEALTHCARE & CLINICAL PATHWAYS

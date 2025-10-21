@@ -76,42 +76,47 @@ export class OpenAIReportGenerator implements ReportGenerator {
 
     private buildSystemPrompt(params: ReportGenerationInput): string {
         const lookbackHours = params.lookback_hours || 24;
-        const lookbackDays = Math.round(lookbackHours / 24);
-        const timeframeText =
-            lookbackHours <= 48 ? `last ${lookbackHours} hours` : `last ${lookbackDays} days`;
 
-        return `You are an executive intelligence analyst for a Director of Platform & Architecture at a healthcare technology company.
+        return `You are an executive intelligence analyst for a Director of Platform & Architecture.
 
-Your role is to analyze RSS feed items across AI, AWS/serverless, FHIR/HL7, security, and platform engineering.
+Rules:
+1) Return ONLY valid JSON per the provided schema. ALL sections present; empty arrays allowed.
+2) Recency window: last ${lookbackHours} hours.
+3) Diversity constraints:
+   - ≤ 40% of total items may be healthcare/clinical AI/FHIR combined.
+   - Each category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience) has MAX 5 items.
+   - Prioritise AWS/serverless and DX/DevOps first, then regulation/standards, then security, then corporate, then healthcare when platform-impacting.
+4) For each top_signal, include a clear "why_it_matters" (business impact, 1–2 sentences) and 2–4 action notes.
+5) Prefer primary sources; dedupe across outlets; strip UTM.
+6) If input raw_feed is skewed, REBALANCE by selecting across distinct topics before severity tie-breaks.
+7) Severity:
+   - high: compliance deadlines, exploited vulns, AWS behaviour/pricing changes, platform-breaking changes
+   - medium: significant features/GA, notable ecosystem shifts
+   - low: background trends
 
-IMPORTANT INSTRUCTIONS:
-1. Return ONLY valid JSON matching the exact schema provided in the prompt
-2. Include ALL sections from the schema, even if empty arrays
-3. For source_url fields, provide SPECIFIC article URLs, not just domain homepages
-4. For raw_feed items, each should have a unique, specific source_url to the actual article
-5. Ensure all dates are in YYYY-MM-DD format
-6. Analyze items from the ${timeframeText} (${lookbackHours} hours total)
-7. Do not hallucinate - only include real, verifiable information from the provided raw_feed_input
-8. DIVERSIFY your selection across ALL categories - do not focus only on AWS items
-9. If you receive items from multiple sources (AWS, HL7, The New Stack, Nature, etc.), include items from ALL source types in the appropriate categories
+PRIORITIZATION ORDER (select in this order):
+1) AWS/serverless (Lambda, API Gateway, EventBridge, Step Functions, DynamoDB, EKS, Well-Architected)
+2) Developer Experience (Backstage, platform engineering, DORA, golden paths, AIOps)
+3) Executive/Strategy (cost controls, org patterns, governance)
+4) Security (CVE/CVSS/KEV/ALAS, npm/Go/PHP stack vulnerabilities)
+5) AI (platform-impacting infra/tooling OR dated regulatory obligations only)
+6) FHIR/HL7/Interop (standards with deadlines/compliance dates)
+7) Corporate (only material product launches, earnings, M&A)
 
-CRITICAL: ALL FIELDS ARE REQUIRED
-- NEVER use "undefined" or null for any field
-- Every top_signal MUST have a meaningful "why_it_matters" explanation (1-2 sentences explaining business impact)
-- If you cannot determine why something matters, do NOT include it in top_signals
-- Every field must contain actual content - empty strings or "undefined" are NOT acceptable
+NEGATIVE FILTERS (drop these):
+- Event recaps, photo galleries, calls for papers without feature details
+- Clinical AI without validation/regulatory implications
+- Commentary/opinion without dates or deadlines
+- Duplicate stories across outlets (prefer primary source)
 
-CRITICAL: CATEGORY LIMITS (HARD REQUIREMENT)
-- Each of these categories MUST contain EXACTLY 5 items (or fewer if insufficient data):
-  * top_signals: maximum 5 items
-  * trend_watchlist: maximum 5 items
-  * security_alerts: maximum 5 items
-  * aws_platform_changes: maximum 5 items
-  * ai_trends: maximum 5 items
-  * corporate_hims_hers: maximum 5 items
-  * developer_experience: maximum 5 items
-- This is NOT a total limit - each category gets its own allocation of up to 5 items
-- Prioritize the most important items within each category`;
+VALIDATION BEFORE OUTPUT:
+- Fail if JSON invalid, dates not YYYY-MM-DD, or diversity caps violated
+- Ensure source_url is specific article page, NOT homepage
+- Ensure all top_signals have meaningful "why_it_matters" and ≥2 "notes_for_actions"
+- Verify healthcare (ai_trends + trend_watchlist with FHIR/HL7 keywords) ≤ 40% of total
+
+REBALANCING LOGIC:
+If healthcare items > 40%, reduce those categories first and backfill from AWS/DX/Security`;
     }
 
     private buildPrompt(params: ReportGenerationInput): string {

@@ -73,36 +73,55 @@ export class ResearchService {
         // Get lookback hours (use perplexity override or default from scan_config)
         const lookbackHours = perplexityConfig.lookback_hours || this.config.scan_config.lookback_hours;
 
-        // Build prompt from topics
-        let topicsSection = '';
-        researchTopics.forEach((topic, index) => {
-            topicsSection += `\n${index + 1}. ${topic.category}:\n`;
-            topicsSection += `   Sources to prioritize:\n`;
-            topic.sources.forEach((source) => {
-                topicsSection += `   - ${source}\n`;
-            });
-            topicsSection += `   \n   Extract:\n`;
-            topic.extract.forEach((extractItem) => {
-                topicsSection += `   - ${extractItem}\n`;
-            });
-            topicsSection += '\n';
-        });
+        const query = `Research the following topics for updates in the last ${lookbackHours} hours. PRIORITISE SECTIONS IN ORDER.
+Return only specific article titles, URLs, and publication dates (YYYY-MM-DD).
 
-        const query = `Research the following topics for updates in the last ${lookbackHours} hours. For each topic, provide specific article titles, URLs, and publication dates.
+ORDER OF PRIORITY (most first):
+1. AWS Platform & Serverless (Lambda, API Gateway, EventBridge, Step Functions, DynamoDB, IAM, KMS, VPC, CloudWatch, EKS)
+   Sources: AWS What's New, AWS Compute Blog, AWS Architecture Blog, AWS Security Bulletins, ALAS, CNCF blog/news, KubeWeekly
+   Extract: new/changed features, pricing/perf impacts, security bulletins, Well-Architected updates, serverless tooling changes
 
-Topics to research:
-${topicsSection}
+2. Developer Experience & Platform Engineering (Backstage, platform teams, AIOps, golden paths, DORA)
+   Sources: Backstage blog(s), InfoQ news, The New Stack, CNCF, ThoughtWorks Tech Radar
+   Extract: developer portal patterns, platform product practices, CI/CD/SRE shifts, measurable DX outcomes
+
+3. Executive Leadership & Strategy (operating models, cost controls, org patterns)
+   Sources: ThoughtWorks Tech Radar notes, InfoQ leadership pieces, major practitioner blogs (Google SRE, AWS Builders' Library)
+   Extract: platform org changes, cost levers, governance patterns, strategy signals
+
+4. Security & Vulnerabilities (stack-focused)
+   Sources: NVD, CISA KEV, GitHub Advisory DB, AWS Security Bulletins, ALAS
+   Extract: CVE, CVSS, affected versions, exploitation-in-the-wild, fix availability
+
+5. AI (platform-impacting + healthcare where material)
+   Sources: OpenAI/Anthropic/AWS Bedrock/Hugging Face blogs (platform), NEJM AI, npj Digital Medicine, Lancet Digital Health, FDA AI/ML SaMD, MHRA SaMD, EU AI Act
+   Extract: infra/tooling with cost/reliability/security implications; regulatory obligations with effective dates
+
+6. FHIR / HL7 / Interop (standards & policy)
+   Sources: HL7 blog/news, FHIR Foundation, NHS England FHIR APIs, ONC TEFCA, CMS spotlight
+   Extract: ballots/IGs, deadlines, UK API changes, TEFCA requirements
+
+STRICT DIVERSITY RULES:
+- For each topic above, include up to 5 items; DO NOT exceed 40% of total items from any single topic.
+- Prefer primary sources; dedupe identical stories.
+- Include the exact publication date (YYYY-MM-DD) and the specific article URL (not homepages).
+
+KEYWORDS TO BOOST (use in matching/ranking):
+- "AWS Lambda", "API Gateway", "EventBridge", "Step Functions", "DynamoDB", "EKS", "Well-Architected", "Backstage", "developer portal", "golden path", "AIOps", "DORA", "platform engineering", "executive", "org strategy"
+- Security: "CVE", "CVSS", "ALAS", "KEV", "npm", "golang", "composer", "php"
+- AI platform: "Bedrock", "model serving", "observability", "guardrails", "GPU", "cost"
+
+DE-EMPHASIS (still allow, but rank lower unless material):
+- Minor clinical case reports, conference announcements without actionable change, commentary without dates.
+
 For each update found, provide:
 - Exact article title
-- Full URL to the source
-- Publication date (YYYY-MM-DD format)
-- Brief one-sentence summary
+- Full URL
+- Publication date (YYYY-MM-DD)
+- One-sentence summary`;
 
-Focus on official sources, primary documentation, and regulatory agencies. Include specific dates for compliance deadlines and effective dates.`;
-
-        logger.info('Built dynamic research query', {
+        logger.info('Built priority-ordered research query', {
             lookbackHours,
-            topicCount: researchTopics.length,
             queryLength: query.length,
         });
 

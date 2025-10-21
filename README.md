@@ -1,6 +1,6 @@
 # Me2resh Daily - Executive Intelligence Scan
 
-AI-powered serverless scanner that aggregates healthcare tech, AWS platform updates, and security insights from 35+ sources into daily executive reports with archived web access.
+AI-powered serverless scanner that aggregates healthcare tech, AWS platform updates, and security insights from 41+ sources into daily executive reports with archived web access.
 
 ## Overview
 
@@ -162,7 +162,7 @@ src/
 
 ## Features
 
-- **Hybrid Data Collection**: Combines RSS feeds (35+ sources) with Perplexity web research for maximum coverage
+- **Hybrid Data Collection**: Combines RSS feeds (41+ sources) with Perplexity web research for maximum coverage
 - **YAML-based configuration**: Easily maintain sources and topics without code changes
 - **Scheduled execution**: Daily scans at configurable times via EventBridge
 - **Email delivery**: HTML and text email reports via Amazon SES
@@ -211,8 +211,9 @@ All configuration is managed through `layer-config/config/sources.yaml`. This si
 - Max items per source
 
 **RSS Feeds:**
-- 35+ pre-configured RSS sources across 7 categories
+- 41+ pre-configured RSS sources across 7 categories
 - Add/remove sources without code changes
+- Title-based deduplication to prevent duplicate stories from different sources
 
 **Perplexity Research:**
 - Research topics and categories (7 categories covering AI healthcare, FHIR, AWS, security, etc.)

@@ -168,20 +168,65 @@ export class ScanService {
         return uniqueItems;
     }
 
+    /**
+     * Normalize title for fuzzy matching
+     * Removes common words, punctuation, and standardizes format
+     */
+    private normalizeTitle(title: string): string {
+        return title
+            .toLowerCase()
+            .replace(/[^\w\s]/g, ' ') // Remove punctuation
+            .replace(/\b(the|a|an|and|or|of|in|on|at|to|for|with|by)\b/g, '') // Remove common words
+            .replace(/\s+/g, ' ') // Collapse whitespace
+            .trim();
+    }
+
     private deduplicateItems(items: ValidatedRawFeed[]): ValidatedRawFeed[] {
         const seen = new Map<string, ValidatedRawFeed>();
+        const titleIndex = new Map<string, string>(); // normalized title -> URL mapping
 
         for (const item of items) {
-            // Use canonical URL as key
-            const key = item.source_url.toLowerCase();
+            // Use canonical URL as primary key
+            const urlKey = item.source_url.toLowerCase();
 
-            if (!seen.has(key)) {
-                seen.set(key, item);
+            // Normalize title for fuzzy matching
+            const normalizedTitle = this.normalizeTitle(item.title);
+
+            // Check if we've seen this URL before
+            if (!seen.has(urlKey)) {
+                // Check if we've seen a similar title before
+                const existingUrlForTitle = titleIndex.get(normalizedTitle);
+
+                if (existingUrlForTitle) {
+                    // Similar title exists - keep the one with earlier published date
+                    const existing = seen.get(existingUrlForTitle);
+                    if (existing && new Date(item.published_at) < new Date(existing.published_at)) {
+                        // Replace existing with this one (earlier date)
+                        seen.delete(existingUrlForTitle);
+                        titleIndex.set(normalizedTitle, urlKey);
+                        seen.set(urlKey, item);
+
+                        logger.debug('Replaced duplicate title with earlier date', {
+                            kept: item.title,
+                            removed: existing.title,
+                            normalizedTitle,
+                        });
+                    } else {
+                        logger.debug('Skipped duplicate title (later date)', {
+                            skipped: item.title,
+                            existing: existing?.title,
+                        });
+                    }
+                } else {
+                    // New title, new URL - add it
+                    seen.set(urlKey, item);
+                    titleIndex.set(normalizedTitle, urlKey);
+                }
             } else {
-                // Keep the one with earlier published date
-                const existing = seen.get(key);
+                // Exact URL match - keep the one with earlier published date
+                const existing = seen.get(urlKey);
                 if (existing && new Date(item.published_at) < new Date(existing.published_at)) {
-                    seen.set(key, item);
+                    seen.set(urlKey, item);
                 }
             }
         }

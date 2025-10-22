@@ -39,10 +39,35 @@ export interface ImpactKeywords {
     [key: string]: string[];
 }
 
+export interface Category {
+    name: string;
+    priority: number;
+    weight: number;
+    max_items?: number;
+    output_sections: string[];
+    search_strategy?: {
+        order: number;
+        queries: string[];
+        time_window: string;
+        required_for_diversity: boolean;
+        max_in_top_signals?: number;
+    };
+    sources?: {
+        primary: Array<{ name: string; url: string; domains?: string[]; rss?: string }>;
+        secondary?: Array<{ name: string; url: string }>;
+    };
+    extract?: string[];
+    keywords?: {
+        boost: string[];
+        filter?: string[];
+    };
+}
+
 export interface SourceConfiguration {
     email: EmailConfig;
     scan_config: ScanConfig;
     topics: Topic[];
     severity_rules: SeverityRules;
     impact_keywords: ImpactKeywords;
+    categories?: Category[];  // New unified categories from sources.yaml
 }

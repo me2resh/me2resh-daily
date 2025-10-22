@@ -1,86 +1,14 @@
-import { SourceConfiguration } from '@/domain/source-config';
-import { PerplexityClient } from '@/infrastructure/perplexity-client';
-import { ScanResult } from '@/domain/scan-result';
-import { logger } from '@/utils/logger';
-import * as fs from 'fs';
-import * as path from 'path';
+You are a research agent producing a daily strategic and technical brief for the Director of Platform & Architecture at a healthtech company operating in the UK, Germany, Ireland, France, Spain, and planning expansion to Canada and the US.
 
-export interface ResearchResult {
-    report: Partial<ScanResult>;
-    query: string;
-}
+MISSION: Extract and structure actionable intelligence from the last {lookback_hours} hours across: AWS platform changes, security vulnerabilities, developer experience shifts, healthtech regulation & AI governance, and competitive moves.
 
-export class ResearchService {
-    constructor(private config: SourceConfiguration, private perplexityClient: PerplexityClient) {}
-
-    async performResearch(date: string, timezone: string): Promise<ResearchResult> {
-        // Build comprehensive Perplexity query
-        const query = this.buildComprehensiveQuery(date, timezone);
-
-        logger.info('Starting Perplexity-only research with comprehensive query', {
-            queryLength: query.length,
-        });
-
-        try {
-            const report = await this.perplexityClient.searchStructured(query);
-
-            logger.info('Perplexity structured research completed', {
-                topSignalsCount: report.top_signals?.length ?? 0,
-                awsChangesCount: report.aws_platform_changes?.length ?? 0,
-                securityAlertsCount: report.security_alerts?.length ?? 0,
-                aiTrendsCount: report.ai_trends?.length ?? 0,
-                corporateCompetitorsCount: report.corporate_competitors?.length ?? 0,
-                developerExperienceCount: report.developer_experience?.length ?? 0,
-            });
-
-            return { report, query };
-        } catch (error) {
-            logger.error('Perplexity research failed', {
-                error: error instanceof Error ? error.message : String(error),
-            });
-            // Return empty report on failure
-            return {
-                report: {
-                    date,
-                    timezone,
-                    top_signals: [],
-                    trend_watchlist: [],
-                    security_alerts: [],
-                    aws_platform_changes: [],
-                    ai_trends: [],
-                    corporate_competitors: [],
-                    developer_experience: [],
-                    raw_feed: [],
-                },
-                query,
-            };
-        }
-    }
-
-    private buildComprehensiveQuery(date: string, timezone: string): string {
-        // Get lookback hours from config (default 24h)
-        const lookbackHours = this.config.scan_config.lookback_hours || 24;
-
-        // Load prompt template from prompt.txt
-        const promptPath = path.join('/opt/config', 'prompt.txt');
-        let promptTemplate: string;
-
-        try {
-            promptTemplate = fs.readFileSync(promptPath, 'utf-8');
-        } catch (error) {
-            logger.error('Failed to load prompt.txt, using embedded fallback', { error });
-            // Fallback to embedded prompt if file not found
-            promptTemplate = `You are a research agent producing a daily strategic and technical brief for the Director of Platform & Architecture at a healthtech company operating in the UK, Germany, Ireland, France, Spain, and planning expansion to Canada and the US.
-
-MISSION: Extract and structure actionable intelligence from the last ${lookbackHours} hours across: AWS platform changes, security vulnerabilities, developer experience shifts, healthtech regulation & AI governance, and competitive moves.
-
-Current date: ${date}
-Timezone: ${timezone}
+Current date: {date}
+Timezone: {timezone}
 
 🚨 CRITICAL RULES - VIOLATIONS CORRUPT THE DATASET 🚨
 1. ONLY use URLs from your actual search results/citations - NO fake/invented URLs
 2. If you cannot find real content for an item, DO NOT include it (better 2 real items than 5 fake)
-3. top_signals MAXIMUM 2 AWS items (aws.amazon.com/amazonaws.com domains)
+3. top_signals MAXIMUM 1 AWS item (aws.amazon.com/amazonaws.com domains)
 4. top_signals MUST include non-AWS items when available (security/DX/healthtech/competitors)
 5. Search BROADLY across all domains - not just AWS
 6. Before returning JSON: VERIFY every source_url exists in your citations
@@ -88,25 +16,7 @@ Timezone: ${timezone}
 MANDATORY SEARCH STRATEGY (Execute in this order):
 You MUST perform searches across ALL these domains, not just AWS:
 
-STEP 1 - Security Search (REQUIRED):
-  Search: "CVE" site:nvd.nist.gov OR site:github.com/advisories OR "npm vulnerability" OR "golang security"
-  Look for: CVEs in last 48h with CVSS scores, especially npm/golang/php
-
-STEP 2 - Developer Experience Search (REQUIRED):
-  Search: "Backstage" OR "CNCF" site:backstage.io OR site:cncf.io OR site:infoq.com OR site:thenewstack.io
-  Look for: Backstage releases, CNCF project updates, platform engineering patterns
-
-STEP 3 - Healthtech/Regulatory Search (REQUIRED):
-  Search: "FHIR" OR "NHS" OR "MHRA" site:digital.nhs.uk OR site:hl7.org OR site:fda.gov OR "EU AI Act"
-  Look for: FHIR updates, NHS API changes, regulatory deadlines with dates
-
-STEP 4 - Competitor Search (OPTIONAL):
-  Search: "Hims" OR "Doctolib" OR "Teladoc" site:investors.hims.com OR "healthtech earnings"
-  Look for: Earnings, funding, partnerships, product launches
-
-STEP 5 - AWS Search (LAST PRIORITY):
-  Search: AWS site:aws.amazon.com "What's New" OR "pricing" OR "security bulletin"
-  Look for: Only high-impact changes (pricing, security, outages)
+{search_strategy}
 
 TIME WINDOWS (apply different lookback windows by category):
 - Security vulnerabilities: 24-72 hours (broader window to ensure findings)
@@ -114,23 +24,10 @@ TIME WINDOWS (apply different lookback windows by category):
 - AWS platform changes: 24-48 hours (only recent critical items)
 
 SOURCES (in priority order):
-1. AWS: What's New, AWS blogs (Compute, Architecture, Security), ALAS, Well-Architected, serverlessland.com
-2. Security: NVD (nvd.nist.gov), CISA KEV, GitHub Advisory DB, AWS Security Bulletins
-3. Developer Experience: Backstage blog/announcements, InfoQ, The New Stack, CNCF, ThoughtWorks Tech Radar
-4. Healthtech Regulation: MHRA (gov.uk/mhra), EMA (ema.europa.eu), FDA (fda.gov), EU AI Act, NHS England/FHIR APIs, HL7, FHIR Foundation, ONC TEFCA
-5. Competitors (UK/EU healthtech): Zava, Doctolib, Babylon Health, Kry/Livi, Push Doctor, Ada Health, Teladoc, Hims & Hers (investors.hims.com, SEC filings)
-6. AI: OpenAI/Anthropic blogs (platform focus), AWS Bedrock, Hugging Face, NEJM AI, npj Digital Medicine, Lancet Digital Health, FDA AI/ML guidance
-7. FinOps & Cost: AWS pricing updates, Well-Architected cost optimization, FinOps Foundation
-8. Leadership: major practitioner blogs (Google SRE, AWS Builders' Library), InfoQ leadership
-9. Emerging Tech: CNCF projects, serverless tooling, platform engineering patterns
+{sources_list}
 
 KEYWORDS TO BOOST (use in matching/ranking):
-- AWS: "Lambda", "API Gateway", "EventBridge", "Step Functions", "DynamoDB", "EKS", "pricing", "security bulletin", "Well-Architected", "eu-west-2"
-- Security: "CVE", "CVSS", "ALAS", "KEV", "npm", "golang", "composer", "php", "exploit"
-- DX: "Backstage", "developer portal", "golden path", "AIOps", "DORA", "platform engineering"
-- Healthtech: "FHIR", "HL7", "NHS", "MHRA", "EMA", "FDA", "SaMD", "GDPR", "HIPAA", "EU AI Act"
-- AI: "Bedrock", "model serving", "observability", "guardrails", "GPU", "clinical AI"
-- Competitors: "Zava", "Doctolib", "Babylon", "Hims", "Teladoc"
+{keywords}
 
 NOISE BLACKLIST (exclude these patterns):
 - serverlessland.com/contributors/* (generic contributor pages)
@@ -179,7 +76,7 @@ PLACEMENT RULES:
 TITLE & TEXT NORMALISERS:
 - Security advisories: "{component}: {CVE or vuln type} allows {impact} (CVSS {score})"
   Example: "php-src: CVE-2025-12345 use-after-free allows RCE (CVSS 9.8)"
-- Version-only releases matching /^v?\\d+(\\.\\d+)*$/: "{project} {version} — {most material change|maintenance/bugfix release}"
+- Version-only releases matching /^v?\d+(\.\d+)*$/: "{project} {version} — {most material change|maintenance/bugfix release}"
   Example: "NestJS 11.1.7 — maintenance release; minor fixes, no breaking changes"
 
 WHY-IT-MATTERS TEMPLATE (REQUIRED for ALL items):
@@ -200,8 +97,8 @@ RANKING SIGNALS (additive scores):
 
 OUTPUT (strict JSON schema):
 {
-  "date": "${date}",
-  "timezone": "${timezone}",
+  "date": "{date}",
+  "timezone": "{timezone}",
   "top_signals": [
     {
       "title": "string",
@@ -326,7 +223,7 @@ STEP 5 - VALIDATE WHY_IT_MATTERS:
   - Reject/omit any item failing this check
 
 STEP 6 - NORMALIZE VERSION-ONLY TITLES:
-  - Rewrite any titles matching /^v?\\d+(\\.\\d+)*$/ per rules above
+  - Rewrite any titles matching /^v?\d+(\.\d+)*$/ per rules above
 
 STEP 7 - FINAL VERIFICATION:
   - Recheck: ALL source_urls exist in your citations (NO fake URLs)
@@ -372,97 +269,4 @@ IF ANY CHECK FAILS: Re-run POST-PROCESSING GUARDS until ALL checks pass
 IF you have 2 AWS items in top_signals: MOVE 1 to aws_platform_changes NOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;
-        }
-
-        // Build search strategy from sources.yaml categories
-        const searchStrategy = this.buildSearchStrategy();
-
-        // Build sources list from sources.yaml
-        const sourcesList = this.buildSourcesList();
-
-        // Build keywords from sources.yaml
-        const keywords = this.buildKeywords();
-
-        // Substitute placeholders in template
-        const query = promptTemplate
-            .replace(/{lookback_hours}/g, String(lookbackHours))
-            .replace(/{date}/g, date)
-            .replace(/{timezone}/g, timezone)
-            .replace(/{search_strategy}/g, searchStrategy)
-            .replace(/{sources_list}/g, sourcesList)
-            .replace(/{keywords}/g, keywords);
-
-        logger.info('Built comprehensive Perplexity query from template', {
-            lookbackHours,
-            queryLength: query.length,
-            categoriesCount: this.config.categories?.length || 0,
-        });
-
-        return query;
-    }
-
-    private buildSearchStrategy(): string {
-        // Build search strategy from sources.yaml categories
-        // Sort by search_strategy.order
-        const categories = (this.config as any).categories || [];
-        const sortedCategories = [...categories].sort((a: any, b: any) => {
-            const orderA = a.search_strategy?.order || 99;
-            const orderB = b.search_strategy?.order || 99;
-            return orderA - orderB;
-        });
-
-        const steps = sortedCategories
-            .filter((cat: any) => cat.search_strategy)
-            .map((cat: any, index: number) => {
-                const strat = cat.search_strategy;
-                const stepNum = index + 1;
-                const required = strat.required_for_diversity ? 'REQUIRED' : 'OPTIONAL';
-
-                let step = `STEP ${stepNum} - ${cat.name} Search (${required}):\n`;
-
-                if (strat.queries && strat.queries.length > 0) {
-                    step += `  Search: ${strat.queries.join(' OR ')}\n`;
-                }
-
-                if (cat.extract && cat.extract.length > 0) {
-                    step += `  Look for: ${cat.extract[0]}\n`;
-                }
-
-                return step;
-            })
-            .join('\n');
-
-        return steps || 'Search across all configured sources';
-    }
-
-    private buildSourcesList(): string {
-        const categories = (this.config as any).categories || [];
-
-        const sourcesList = categories.map((cat: any, index: number) => {
-            let section = `${index + 1}. ${cat.name}:\n`;
-
-            if (cat.sources?.primary) {
-                const primarySources = cat.sources.primary
-                    .map((s: any) => `   - ${s.name}${s.url ? ` (${s.url})` : ''}`)
-                    .join('\n');
-                section += primarySources + '\n';
-            }
-
-            return section;
-        }).join('\n');
-
-        return sourcesList || 'See sources.yaml for configured sources';
-    }
-
-    private buildKeywords(): string {
-        const categories = (this.config as any).categories || [];
-
-        const keywordsList = categories
-            .filter((cat: any) => cat.keywords?.boost && cat.keywords.boost.length > 0)
-            .map((cat: any) => `- ${cat.name}: "${cat.keywords.boost.join('", "')}"`)
-            .join('\n');
-
-        return keywordsList || 'No specific keywords configured';
-    }
-}
+Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.

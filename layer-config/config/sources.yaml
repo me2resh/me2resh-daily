@@ -1,290 +1,395 @@
-# Me2resh Daily Intel Scan - Comprehensive RSS Source Catalogue
-# RSS-first approach: Only includes sources with working RSS/Atom feeds
-# Last updated: 2025-10-19
+# ============================================================================
+# ME2RESH DAILY - UNIFIED SOURCE CONFIGURATION
+# ============================================================================
+# All research categories, sources, weights, priorities, and search strategies
+# in a single unified configuration structure.
+#
+# Configuration parameters at top, categories below.
+# ============================================================================
 
-email:
-  to_address: "${TO_EMAIL_ADDRESS}"
-  from_address: "${FROM_EMAIL_ADDRESS}"
-  subject_prefix: "Me2resh Daily"
+# ----------------------------------------------------------------------------
+# GLOBAL CONFIGURATION
+# ----------------------------------------------------------------------------
+config:
+  email:
+    to_address: "${TO_EMAIL_ADDRESS}"
+    from_address: "${FROM_EMAIL_ADDRESS}"
+    subject_prefix: "Me2resh Daily"
 
-scan_config:
-  timezone: "Europe/London"
-  scan_time: "05:00"
-  lookback_hours: 24  # Freshness window in hours (default: 24 for daily scans, override via Lambda event for testing)
-  max_items_per_source: 20  # Limit items per source to control costs
-  enable_perplexity_research: true  # Enable Perplexity for additional coverage
+  scan:
+    timezone: "Europe/London"
+    scan_time: "05:00"
+    lookback_hours: 24
+    max_items_per_source: 20
 
-  # Diversity & Rebalancing Controls
-  max_items_per_category: 5  # Hard cap per category (top_signals, aws_platform_changes, etc.)
-  healthcare_combined_cap: 0.4  # Max 40% of total items from healthcare/AI/FHIR combined
-  rebalance_on: true  # Enable automatic rebalancing if input is skewed
-  primary_sources_first: true  # Prioritize primary sources (AWS official, NVD, CISA, etc.)
-  drop_undated_commentary: true  # Drop commentary/opinion pieces without dates
+  diversity:
+    max_items_per_category: 5
+    healthcare_combined_cap: 0.4  # Max 40% from healthcare/AI/FHIR combined
+    rebalance_on: true
+    primary_sources_first: true
+    drop_undated_commentary: true
 
-topics:
-  # ============================================================================
-  # 1. AI IN HEALTHCARE & CLINICAL PATHWAYS
-  # ============================================================================
-  - name: "AI Healthcare - Clinical Journals"
-    category: "ai_healthcare"
-    priority: 1
-    sources:
-      - name: "NEJM AI"
-        url: "https://ai.nejm.org/"
-        rss_url: "https://ai.nejm.org/feeds/latest.rss"
-        type: "rss"
+    # Ultra-strict diversity for top_signals
+    top_signals_max_aws: 1  # Maximum AWS items in top_signals
+    top_signals_min_non_aws: 2  # Minimum non-AWS items required
 
-      - name: "npj Digital Medicine"
-        url: "https://www.nature.com/npjdigitalmed/"
-        rss_url: "https://www.nature.com/npjdigitalmed.rss"
-        type: "rss"
+  perplexity:
+    enabled: true
+    model: "sonar"
+    temperature: 0.2
 
-      - name: "The Lancet Digital Health"
-        url: "https://www.thelancet.com/journals/landig/home"
-        rss_url: "https://www.thelancet.com/content/rss"
-        type: "rss"
+# ----------------------------------------------------------------------------
+# RESEARCH CATEGORIES
+# ----------------------------------------------------------------------------
+# Each category defines:
+#   - priority: 1-5 (1 = highest, drives search order and top_signals selection)
+#   - weight: Relative importance for ranking within category
+#   - max_items: Category-specific cap (overrides global if set)
+#   - output_section: Where items go in final JSON
+#   - search_strategy: How Perplexity should search for this category
+#   - sources: List of authoritative sources to prioritize
+#   - extract: What specific information to look for
+#   - keywords: Boost these terms in matching/ranking
+# ----------------------------------------------------------------------------
 
-  - name: "AI Platforms & Vendors"
-    category: "ai_platform"
-    priority: 1
-    sources:
-      - name: "OpenAI News"
-        url: "https://openai.com/news/"
-        rss_url: "https://openai.com/news/rss.xml"
-        type: "rss"
-
-      - name: "Hugging Face Blog"
-        url: "https://huggingface.co/blog"
-        rss_url: "https://huggingface.co/blog/feed.xml"
-        type: "rss"
-
-      - name: "AWS Machine Learning Blog"
-        url: "https://aws.amazon.com/blogs/machine-learning/"
-        rss_url: "https://feeds.feedburner.com/AmazonWebServicesBlogMachineLearning"
-        type: "rss"
-
-      - name: "TLDR AI Newsletter"
-        url: "https://tldr.tech/ai"
-        rss_url: "https://tldr.tech/api/rss/ai"
-        type: "rss"
-
-  # ============================================================================
-  # 2. AWS & SERVERLESS PLATFORM
-  # ============================================================================
-  - name: "AWS Official Feeds"
-    category: "aws_platform"
-    priority: 1
-    sources:
-      - name: "AWS What's New"
-        url: "https://aws.amazon.com/new/"
-        rss_url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"
-        type: "rss"
-
-      - name: "AWS Security Bulletins"
-        url: "https://aws.amazon.com/security/security-bulletins/"
-        rss_url: "https://aws.amazon.com/security/security-bulletins/feed/"
-        type: "rss"
-
-      - name: "AWS Compute Blog"
-        url: "https://aws.amazon.com/blogs/compute/"
-        rss_url: "https://aws.amazon.com/blogs/compute/feed/"
-        type: "rss"
-
-      - name: "AWS Architecture Blog"
-        url: "https://aws.amazon.com/blogs/architecture/"
-        rss_url: "https://aws.amazon.com/blogs/architecture/feed/"
-        type: "rss"
-
-      - name: "Lambda Release Notes"
-        url: "https://docs.aws.amazon.com/lambda/latest/dg/lambda-updates.html"
-        rss_url: "https://docs.aws.amazon.com/lambda/latest/dg/lambda-updates.rss"
-        type: "rss"
-
-      - name: "CloudFormation Release Notes"
-        url: "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/ReleaseHistory.html"
-        rss_url: "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/ReleaseHistory.rss"
-        type: "rss"
-
-  - name: "Serverless Ecosystem"
-    category: "serverless"
-    priority: 2
-    sources:
-      - name: "Serverless Land"
-        url: "https://serverlessland.com/"
-        rss_url: "https://serverlessland.com/feed.xml"
-        type: "rss"
-
-      - name: "Serverless Framework Blog"
-        url: "https://www.serverless.com/blog"
-        rss_url: "https://www.serverless.com/blog/rss"
-        type: "rss"
-
-      - name: "CNCF Blog"
-        url: "https://www.cncf.io/blog/"
-        rss_url: "https://www.cncf.io/feed/"
-        type: "rss"
-
-  # ============================================================================
-  # 3. FHIR / HL7 / INTEROPERABILITY
-  # ============================================================================
-  - name: "FHIR & HL7 Standards"
-    category: "fhir_standards"
-    priority: 2
-    sources:
-      - name: "HL7 Blog"
-        url: "https://blog.hl7.org/"
-        rss_url: "https://blog.hl7.org/rss.xml"
-        type: "rss"
-
-      - name: "Hay on FHIR (Community Blog)"
-        url: "https://fhirblog.com/"
-        rss_url: "https://fhirblog.com/feed/"
-        type: "rss"
-
-      - name: "ONC Health IT Buzz"
-        url: "https://www.healthit.gov/buzz-blog/"
-        rss_url: "https://www.healthit.gov/buzz-blog/feed"
-        type: "rss"
-
-  # ============================================================================
-  # 4. SECURITY ADVISORIES
-  # ============================================================================
+categories:
+  # ==========================================================================
+  # 1. SECURITY & VULNERABILITIES (Highest Priority for Diversity)
+  # ==========================================================================
   - name: "Security & Vulnerabilities"
-    category: "security"
     priority: 1
+    weight: 1.0
+    max_items: 5
+    output_sections:
+      - "security_alerts"
+      - "top_signals"  # High-impact CVEs go here
+
+    search_strategy:
+      order: 1  # Search FIRST
+      queries:
+        - '"CVE" site:nvd.nist.gov OR site:github.com/advisories'
+        - '"npm vulnerability" OR "golang security" OR "php security"'
+        - '"CVSS" AND ("npm" OR "golang" OR "composer")'
+      time_window: "24-72h"  # Broader window for security
+      required_for_diversity: true
+
     sources:
-      - name: "CVE Details - Latest CVEs"
-        url: "https://www.cvedetails.com/"
-        rss_url: "https://www.cvedetails.com/vulnerability-feeds-form.php"
-        type: "rss"
+      primary:
+        - name: "NVD - National Vulnerability Database"
+          url: "https://nvd.nist.gov/vuln"
+          domains: ["nvd.nist.gov"]
 
-      - name: "Tenable CVE Feeds"
-        url: "https://www.tenable.com/cve"
-        rss_url: "https://www.tenable.com/cve/feeds/newest"
-        type: "rss"
+        - name: "GitHub Advisory Database"
+          url: "https://github.com/advisories"
+          domains: ["github.com/advisories"]
 
-      - name: "TLDR InfoSec Newsletter"
-        url: "https://tldr.tech/infosec"
-        rss_url: "https://tldr.tech/api/rss/infosec"
-        type: "rss"
+        - name: "CISA Known Exploited Vulnerabilities"
+          url: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+          domains: ["cisa.gov"]
 
-  # ============================================================================
-  # 5. STACK RELEASES (GitHub Atom Feeds)
-  # ============================================================================
-  - name: "Language & Framework Releases"
-    category: "releases"
+      secondary:
+        - name: "Tenable CVE Feeds"
+          url: "https://www.tenable.com/cve"
+
+    extract:
+      - "CVE numbers with CVSS scores (especially >7.0)"
+      - "Affected versions for npm, golang, php, composer packages"
+      - "Exploitation status (in-the-wild vs theoretical)"
+      - "Fix availability and patch versions"
+      - "AWS service vulnerabilities"
+
+    keywords:
+      boost: ["CVE", "CVSS", "exploit", "vulnerability", "npm", "golang", "php", "composer", "NestJS", "TypeScript"]
+      filter: ["nestjs", "express", "typescript", "golang", "php", "aws"]
+
+  # ==========================================================================
+  # 2. DEVELOPER EXPERIENCE & PLATFORM ENGINEERING
+  # ==========================================================================
+  - name: "Developer Experience & Platform Engineering"
     priority: 2
+    weight: 0.9
+    max_items: 5
+    output_sections:
+      - "developer_experience"
+      - "top_signals"  # Major releases/patterns go here
+
+    search_strategy:
+      order: 2  # Search SECOND
+      queries:
+        - '"Backstage" site:backstage.io OR site:backstage.spotify.com'
+        - '"CNCF" site:cncf.io OR "Kubernetes" OR "platform engineering"'
+        - 'site:infoq.com OR site:thenewstack.io "developer experience"'
+      time_window: "48-72h"
+      required_for_diversity: true
+
     sources:
-      - name: "NestJS Releases"
-        url: "https://github.com/nestjs/nest/releases"
-        rss_url: "https://github.com/nestjs/nest/releases.atom"
-        type: "rss"
+      primary:
+        - name: "Backstage"
+          url: "https://backstage.io/blog/"
+          domains: ["backstage.io", "backstage.spotify.com"]
+          rss: "https://backstage.spotify.com/discover/blog/rss.xml"
 
-      - name: "TypeScript Releases"
-        url: "https://github.com/microsoft/TypeScript/releases"
-        rss_url: "https://github.com/microsoft/TypeScript/releases.atom"
-        type: "rss"
+        - name: "CNCF"
+          url: "https://www.cncf.io/blog/"
+          domains: ["cncf.io"]
+          rss: "https://www.cncf.io/feed/"
 
-      - name: "Go Blog"
-        url: "https://go.dev/blog/"
-        rss_url: "https://go.dev/blog/feed.atom"
-        type: "rss"
+        - name: "InfoQ"
+          url: "https://www.infoq.com/news/"
+          domains: ["infoq.com"]
+          rss: "https://feed.infoq.com/"
 
-      - name: "AWS SAM CLI Releases"
-        url: "https://github.com/aws/aws-sam-cli/releases"
-        rss_url: "https://github.com/aws/aws-sam-cli/releases.atom"
-        type: "rss"
+        - name: "The New Stack"
+          url: "https://thenewstack.io/"
+          domains: ["thenewstack.io"]
+          rss: "https://thenewstack.io/feed/"
 
-      - name: "AWS SAM Model Releases"
-        url: "https://github.com/aws/serverless-application-model/releases"
-        rss_url: "https://github.com/aws/serverless-application-model/releases.atom"
-        type: "rss"
+      secondary:
+        - name: "ThoughtWorks Tech Radar"
+          url: "https://www.thoughtworks.com/radar"
 
-      - name: "PHP Security Advisories"
-        url: "https://github.com/php/php-src/security/advisories"
-        rss_url: "https://github.com/php/php-src/security/advisories.atom"
-        type: "rss"
+    extract:
+      - "Backstage releases and feature updates"
+      - "CNCF project maturity announcements"
+      - "Platform engineering patterns and golden paths"
+      - "Developer portal updates"
+      - "DevOps and AIOps tool improvements"
 
-  # ============================================================================
-  # 6. DEVELOPER EXPERIENCE & TRENDS
-  # ============================================================================
-  - name: "Developer Experience"
-    category: "developer_experience"
+    keywords:
+      boost: ["Backstage", "CNCF", "platform engineering", "golden path", "developer portal", "DORA", "AIOps"]
+
+  # ==========================================================================
+  # 3. HEALTHTECH REGULATION & INTEROPERABILITY
+  # ==========================================================================
+  - name: "Healthtech Regulation & Interoperability"
+    priority: 2
+    weight: 0.9
+    max_items: 5
+    output_sections:
+      - "ai_trends"  # Regulatory AI items
+      - "top_signals"  # Dated obligations/deadlines
+
+    search_strategy:
+      order: 3  # Search THIRD
+      queries:
+        - '"FHIR" site:hl7.org OR site:digital.nhs.uk'
+        - '"NHS" OR "MHRA" OR "FDA" site:gov.uk OR site:fda.gov'
+        - '"EU AI Act" OR "SaMD" OR "medical device"'
+      time_window: "48-72h"
+      required_for_diversity: true
+
+    sources:
+      primary:
+        - name: "HL7 Blog"
+          url: "https://blog.hl7.org/"
+          domains: ["blog.hl7.org", "hl7.org"]
+          rss: "https://blog.hl7.org/rss.xml"
+
+        - name: "NHS Digital FHIR APIs"
+          url: "https://digital.nhs.uk/services/fhir-apis"
+          domains: ["digital.nhs.uk"]
+
+        - name: "FDA AI/ML SaMD"
+          url: "https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device"
+          domains: ["fda.gov"]
+
+        - name: "MHRA"
+          url: "https://www.gov.uk/mhra"
+          domains: ["gov.uk/mhra"]
+          rss: "https://yellowcard.mhra.gov.uk/news/rss"
+
+        - name: "EU AI Act"
+          url: "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai"
+          domains: ["ec.europa.eu"]
+
+      secondary:
+        - name: "ONC Health IT"
+          url: "https://www.healthit.gov/buzz-blog/"
+          rss: "https://www.healthit.gov/buzz-blog/feed"
+
+    extract:
+      - "FHIR ballot updates and implementation guides"
+      - "NHS API changes and interoperability guidance"
+      - "Regulatory deadlines with specific dates"
+      - "EU AI Act timeline and obligations"
+      - "FDA/MHRA SaMD guidance updates"
+      - "HL7 working group decisions"
+
+    keywords:
+      boost: ["FHIR", "HL7", "NHS", "MHRA", "EMA", "FDA", "SaMD", "GDPR", "HIPAA", "EU AI Act", "interoperability", "TEFCA"]
+
+  # ==========================================================================
+  # 4. AWS PLATFORM & SERVERLESS (Lower Priority Due to Saturation)
+  # ==========================================================================
+  - name: "AWS Platform & Serverless"
+    priority: 4  # Lower priority - search LAST
+    weight: 0.7  # Lower weight due to diversity requirements
+    max_items: 10  # More items allowed, but most go to aws_platform_changes
+    output_sections:
+      - "aws_platform_changes"
+      - "top_signals"  # MAX 1 item here (ultra-strict cap)
+
+    search_strategy:
+      order: 5  # Search LAST (after all non-AWS categories)
+      queries:
+        - 'site:aws.amazon.com "What\'s New" OR "pricing" OR "security bulletin"'
+        - 'site:aws.amazon.com/blogs/compute OR site:aws.amazon.com/blogs/architecture'
+      time_window: "24-48h"  # Narrower window
+      required_for_diversity: false  # Not required
+      max_in_top_signals: 1  # STRICT CAP
+
+    sources:
+      primary:
+        - name: "AWS What's New"
+          url: "https://aws.amazon.com/new/"
+          domains: ["aws.amazon.com"]
+          rss: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"
+
+        - name: "AWS Security Bulletins"
+          url: "https://aws.amazon.com/security/security-bulletins/"
+          domains: ["aws.amazon.com"]
+          rss: "https://aws.amazon.com/security/security-bulletins/feed/"
+
+        - name: "AWS Compute Blog"
+          url: "https://aws.amazon.com/blogs/compute/"
+          domains: ["aws.amazon.com"]
+          rss: "https://aws.amazon.com/blogs/compute/feed/"
+
+        - name: "AWS Architecture Blog"
+          url: "https://aws.amazon.com/blogs/architecture/"
+          domains: ["aws.amazon.com"]
+          rss: "https://aws.amazon.com/blogs/architecture/feed/"
+
+      secondary:
+        - name: "Serverless Land"
+          url: "https://serverlessland.com/"
+          rss: "https://serverlessland.com/feed.xml"
+
+        - name: "CNCF"
+          url: "https://www.cncf.io/"
+
+    extract:
+      - "Lambda, API Gateway, EventBridge, Step Functions, DynamoDB updates"
+      - "Pricing changes with customer impact"
+      - "Security bulletins and behavior changes"
+      - "Well-Architected framework updates"
+      - "ONLY high-impact items for top_signals (outages, pricing, security)"
+
+    keywords:
+      boost: ["Lambda", "API Gateway", "EventBridge", "Step Functions", "DynamoDB", "EKS", "pricing", "security bulletin", "Well-Architected", "eu-west-2"]
+
+    placement_rules:
+      top_signals: "ONLY pricing/behavior/security changes, outages with primary source"
+      aws_platform_changes: "Routine What's New, GAs, region support, console toggles"
+
+  # ==========================================================================
+  # 5. CORPORATE COMPETITORS
+  # ==========================================================================
+  - name: "Corporate Competitors"
     priority: 3
+    weight: 0.8
+    max_items: 5
+    output_sections:
+      - "corporate_competitors"
+      - "top_signals"  # Earnings/major moves go here
+
+    search_strategy:
+      order: 4  # Search before AWS
+      queries:
+        - '"Hims" OR "Hims & Hers" site:investors.hims.com'
+        - '"Doctolib" OR "Teladoc" OR "Zava"'
+        - '"healthtech earnings" OR "digital health"'
+      time_window: "48-72h"
+      required_for_diversity: false  # Optional but preferred
+
     sources:
-      - name: "Backstage Spotify Blog"
-        url: "https://backstage.spotify.com/discover/blog/"
-        rss_url: "https://backstage.spotify.com/discover/blog/rss.xml"
-        type: "rss"
+      primary:
+        - name: "Hims & Hers Investor Relations"
+          url: "https://investors.hims.com/news/default.aspx"
+          domains: ["investors.hims.com"]
 
-      - name: "InfoQ News"
-        url: "https://www.infoq.com/news/"
-        rss_url: "https://feed.infoq.com/"
-        type: "rss"
+        - name: "SEC EDGAR (CIK 0001773751)"
+          url: "https://www.sec.gov/edgar/search/"
+          domains: ["sec.gov"]
 
-      - name: "The New Stack"
-        url: "https://thenewstack.io/"
-        rss_url: "https://thenewstack.io/feed/"
-        type: "rss"
+      secondary:
+        - name: "Doctolib"
+          url: "https://www.doctolib.com/"
 
-      - name: "TLDR Dev Newsletter"
-        url: "https://tldr.tech/dev"
-        rss_url: "https://tldr.tech/api/rss/dev"
-        type: "rss"
+        - name: "Teladoc"
+          url: "https://teladochealth.com/"
 
-      - name: "TLDR DevOps Newsletter"
-        url: "https://tldr.tech/devops"
-        rss_url: "https://tldr.tech/api/rss/devops"
-        type: "rss"
+        - name: "Zava"
+          url: "https://www.zavamed.com/uk/"
 
-      - name: "TLDR Product Newsletter"
-        url: "https://tldr.tech/product"
-        rss_url: "https://tldr.tech/api/rss/product"
-        type: "rss"
+    extract:
+      - "Earnings announcements and guidance"
+      - "Product launches and service expansions"
+      - "Subscriber metrics and market strategy"
+      - "SEC filings and material events"
+      - "Competitive pricing and regulatory changes"
 
-      - name: "TLDR IT Newsletter"
-        url: "https://tldr.tech/it"
-        rss_url: "https://tldr.tech/api/rss/it"
-        type: "rss"
+    keywords:
+      boost: ["Hims", "Doctolib", "Teladoc", "Zava", "Babylon", "earnings", "SEC filing"]
 
-  # ============================================================================
-  # 7. INTERNATIONAL REGULATORS (RSS-enabled)
-  # ============================================================================
-  - name: "Healthcare Regulators"
-    category: "regulatory"
-    priority: 2
+  # ==========================================================================
+  # 6. AI TRENDS (Clinical & Platform)
+  # ==========================================================================
+  - name: "AI Trends"
+    priority: 3
+    weight: 0.8
+    max_items: 2  # Stricter cap unless dated obligation
+    output_sections:
+      - "ai_trends"
+      - "top_signals"  # Regulatory AI with dates
+
+    search_strategy:
+      order: 3  # Part of healthtech search
+      queries:
+        - 'site:ai.nejm.org OR site:nature.com/npjdigitalmed'
+        - '"AWS Bedrock" OR "OpenAI" OR "Anthropic" platform'
+        - '"clinical AI" OR "medical AI" OR "healthcare AI"'
+      time_window: "48-72h"
+      required_for_diversity: false
+
     sources:
-      - name: "MHRA Yellow Card News"
-        url: "https://yellowcard.mhra.gov.uk/news"
-        rss_url: "https://yellowcard.mhra.gov.uk/news/rss"
-        type: "rss"
+      primary:
+        - name: "NEJM AI"
+          url: "https://ai.nejm.org/"
+          domains: ["ai.nejm.org"]
+          rss: "https://ai.nejm.org/feeds/latest.rss"
 
-      - name: "EMA RSS Feeds"
-        url: "https://www.ema.europa.eu/en/news-events/rss-feeds"
-        rss_url: "https://www.ema.europa.eu/en/news-events/rss-feeds"
-        type: "rss"
+        - name: "npj Digital Medicine"
+          url: "https://www.nature.com/npjdigitalmed/"
+          domains: ["nature.com"]
+          rss: "https://www.nature.com/npjdigitalmed.rss"
 
-      - name: "IMDRF RSS"
-        url: "https://www.imdrf.org/"
-        rss_url: "https://www.imdrf.org/rss-feeds"
-        type: "rss"
+        - name: "Lancet Digital Health"
+          url: "https://www.thelancet.com/journals/landig/home"
+          domains: ["thelancet.com"]
+          rss: "https://www.thelancet.com/content/rss"
 
-      - name: "HAS (France) RSS"
-        url: "https://www.has-sante.fr/"
-        rss_url: "https://www.has-sante.fr/jcms/c_1771214/fr/nos-flux-d-information-rss"
-        type: "rss"
+      secondary:
+        - name: "OpenAI"
+          url: "https://openai.com/news/"
+          rss: "https://openai.com/news/rss.xml"
 
-      - name: "ANSM (France) RSS"
-        url: "https://ansm.sante.fr/"
-        rss_url: "https://ansm.sante.fr/page/flux-rss"
-        type: "rss"
+        - name: "Hugging Face"
+          url: "https://huggingface.co/blog"
+          rss: "https://huggingface.co/blog/feed.xml"
 
-      - name: "CMS RSS Hub"
-        url: "https://www.cms.gov/"
-        rss_url: "https://www.cms.gov/about-cms/web-policies-important-links/rss-feeds"
-        type: "rss"
+    extract:
+      - "Regulatory guidance with effective dates"
+      - "Clinical AI safety standards"
+      - "Platform-impacting infra/tooling only"
+      - "Model serving and observability"
 
-# Severity rules for automatic classification
+    keywords:
+      boost: ["Bedrock", "model serving", "observability", "guardrails", "GPU", "clinical AI", "medical AI"]
+
+# ----------------------------------------------------------------------------
+# SEVERITY & IMPACT CLASSIFICATION
+# ----------------------------------------------------------------------------
 severity_rules:
   high:
     - "compliance deadline"
@@ -294,8 +399,11 @@ severity_rules:
     - "critical security"
     - "AWS service deprecation"
     - "major cost impact"
+    - "pricing change"
+    - "outage"
     - "AI Act"
     - "SaMD"
+    - "CVSS >7.0"
 
   medium:
     - "new feature"
@@ -303,13 +411,13 @@ severity_rules:
     - "version upgrade"
     - "recommended update"
     - "guidance"
+    - "release"
 
   low:
     - "advisory"
     - "background trend"
     - "minor update"
 
-# Impact mapping keywords
 impact_keywords:
   Regulatory:
     - "compliance"
@@ -344,6 +452,7 @@ impact_keywords:
     - "productivity"
     - "workflow"
     - "backstage"
+    - "golden path"
 
   Cost:
     - "pricing"
@@ -359,107 +468,9 @@ impact_keywords:
     - "earnings"
     - "acquisition"
 
-# ============================================================================
-# PERPLEXITY WEB RESEARCH CONFIGURATION
-# ============================================================================
-# Perplexity performs ONE combined search covering all categories below.
-# Add/remove/modify research areas as needed. The app will automatically
-# build the prompt from REQUIREMENTS.txt + these research topics.
-#
-# Each research topic should specify:
-#   - category: What to research
-#   - sources: Suggested sources to prioritize
-#   - extract: What information to look for
-# ============================================================================
-
-perplexity_research:
-  enabled: true  # Set to false to disable Perplexity (RSS-only mode)
-
-  # Time span for research (uses lookback_hours from scan_config by default)
-  # Override here if you want different time span for web research vs RSS
-  # lookback_hours: 48  # Uncomment to override
-
-  # Research topics - add/modify as needed
-  research_topics:
-    - category: "AI in Healthcare & Clinical AI"
-      sources:
-        - "NEJM AI, npj Digital Medicine, Lancet Digital Health"
-        - "FDA AI/ML SaMD guidance and draft documents"
-        - "MHRA Software & AI as Medical Device"
-        - "EU AI Act official timeline and GPAI obligations"
-      extract:
-        - "Regulatory guidance updates with effective dates"
-        - "Clinical AI safety standards and validation frameworks"
-        - "High-risk medical device classifications"
-        - "Monitoring and explainability requirements"
-
-    - category: "FHIR, HL7, and Healthcare Interoperability"
-      sources:
-        - "HL7 official blog and HL7 News publication"
-        - "HL7 Confluence meeting minutes: https://confluence.hl7.org/spaces/HL7/pages/524292/"
-        - "NHS England Digital FHIR APIs"
-        - "ONC TEFCA FHIR roadmap"
-        - "CMS FHIR spotlight and burden reduction"
-      extract:
-        - "FHIR ballot updates and implementation guides"
-        - "HL7 working group meeting minutes and decisions"
-        - "Technical Steering Committee and Board meeting outcomes"
-        - "FHIR specification changes and ballot status"
-        - "NHS API changes and interoperability guidance"
-        - "TEFCA exchange requirements"
-        - "UK-specific FHIR implementations"
-
-    - category: "AWS Platform & Serverless"
-      sources:
-        - "AWS What's New, Compute Blog, Architecture Blog"
-        - "AWS security bulletins and ALAS"
-        - "CNCF and Kubernetes ecosystem"
-        - "AWS SAM CLI and specification releases"
-      extract:
-        - "Lambda, API Gateway, EventBridge, Step Functions, DynamoDB updates"
-        - "Security bulletins and patches"
-        - "Well-Architected framework updates"
-        - "Serverless framework and tooling changes"
-
-    - category: "Security & Vulnerabilities"
-      sources:
-        - "NVD and GitHub Advisory Database"
-        - "CISA Known Exploited Vulnerabilities (KEV)"
-        - "Language-specific security advisories"
-      extract:
-        - "Critical CVEs for TypeScript/NestJS (npm)"
-        - "Golang security advisories"
-        - "PHP security updates"
-        - "AWS service vulnerabilities"
-
-    - category: "Corporate Intelligence - Hims & Hers"
-      sources:
-        - "Hims & Hers Investor Relations (CIK 0001773751)"
-        - "SEC filings (10-K, 10-Q, 8-K, Form 144)"
-        - "UK competitors: Zava and ASDA Online Doctor"
-      extract:
-        - "Earnings announcements and guidance"
-        - "Product launches and service expansions"
-        - "Subscriber metrics and market strategy"
-        - "Competitive pricing and regulatory changes"
-
-    - category: "Developer Experience & Platform Engineering"
-      sources:
-        - "Backstage, InfoQ, The New Stack"
-        - "CNCF maturity announcements"
-        - "ThoughtWorks Technology Radar"
-      extract:
-        - "Developer portal updates and patterns"
-        - "Platform engineering trends"
-        - "DevOps and AIOps improvements"
-        - "Golden path tooling"
-
-    - category: "Language & Framework Releases"
-      sources:
-        - "NestJS, TypeScript, Golang release pages"
-        - "AWS SAM CLI and model releases"
-        - "PHP security releases"
-      extract:
-        - "Breaking changes and new features"
-        - "Language feature updates"
-        - "Security patches and version updates"
+  Healthtech:
+    - "FHIR"
+    - "HL7"
+    - "NHS"
+    - "interoperability"
+    - "clinical"

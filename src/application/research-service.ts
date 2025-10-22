@@ -66,6 +66,13 @@ MISSION: Extract and structure actionable intelligence from the last ${lookbackH
 Current date: ${date}
 Timezone: ${timezone}
 
+⚠️  CRITICAL DIVERSITY MANDATE (READ THIS FIRST) ⚠️
+TOP_SIGNALS MUST HAVE DIVERSE SOURCES:
+- Absolute MAX 2 items from aws.amazon.com/amazonaws.com domains
+- If non-AWS content exists (security, DX, healthtech, competitors), you MUST include ≥1 non-AWS item
+- Target: 3-5 items total with balanced sources
+- This rule overrides all other ranking considerations
+
 TIME WINDOWS (apply different lookback windows by category):
 - AWS platform changes, security vulnerabilities: 24-48 hours
 - Developer experience, healthtech regulation, AI trends: up to 72 hours (more supply on quiet news days)
@@ -96,8 +103,18 @@ NOISE BLACKLIST (exclude these patterns):
 - Generic status pages (/status, /watch paths)
 - Undated "What's New" or contributor pages
 
-DIVERSITY & CAPS:
-- TOP SIGNALS: MAX 2 items from aws.amazon.com domains; if non-AWS items exist, include ≥1 from developer_experience OR security_alerts
+DIVERSITY & CAPS (MANDATORY ENFORCEMENT):
+*** CRITICAL: TOP SIGNALS DIVERSITY RULES (HIGHEST PRIORITY) ***
+1. AWS DOMAIN CAP: Absolute MAX 2 items from aws.amazon.com domains in top_signals
+2. NON-AWS REQUIREMENT: If ANY non-AWS content exists (DX, Security, Healthtech, Competitors), you MUST include at least 1 non-AWS item in top_signals
+3. PREFERRED MIX: Aim for 3-5 items total in top_signals with this balance:
+   - MAX 2 from AWS (aws.amazon.com, amazonaws.com domains)
+   - MIN 1 from security_alerts (CVEs, vulnerabilities) IF available
+   - MIN 1 from developer_experience (Backstage, CNCF, InfoQ) IF available
+   - Remaining slots: highest-ranking items from any category
+4. ENFORCEMENT: If you have >2 AWS items in top_signals, you MUST move lower-ranked AWS items to aws_platform_changes
+
+OTHER CAPS:
 - Each populated category: MAX 5 items
 - Healthcare combined (AI + FHIR): ≤ 40% of total items
 - AWS routine items → aws_platform_changes (not top_signals unless pricing/behaviour/security change)
@@ -214,23 +231,89 @@ OUTPUT (strict JSON schema):
   ]
 }
 
-VALIDATION RULES:
+VALIDATION RULES (ENFORCE BEFORE RETURNING JSON):
 1. ALL sections MUST be present (empty arrays allowed)
 2. Each category: MAX 5 items
 3. ALL why_it_matters fields: MUST be non-empty, >10 chars, follow template
 4. ALL source_url fields: MUST be real URLs from sources listed above
 5. Security advisories: MUST have component, cve, cvss, affected_versions, fix_available
 6. Version-only titles: MUST be normalized per rules above
-7. AWS items in top_signals: MAX 2; prefer non-AWS when available
+7. *** DIVERSITY CHECK (TOP_SIGNALS) ***:
+   a. Count items from aws.amazon.com or amazonaws.com domains
+   b. If count > 2: Move lowest-ranked AWS items to aws_platform_changes
+   c. If non-AWS items available AND top_signals has 0 non-AWS items: Add at least 1 from security_alerts or developer_experience
+   d. Target: 3-5 total items with MAX 2 AWS, MIN 1 non-AWS
 8. Healthcare (AI + FHIR): ≤ 40% of total items
 
-POST-PROCESSING GUARDS:
-- Assert no why_it_matters is blank/"undefined"
-- Rewrite version-only titles per rules above
-- Move AWS items from top_signals → aws_platform_changes unless high-impact
-- Ensure each category with items has ≥1 non-AWS source when available
+POST-PROCESSING GUARDS (MANDATORY - RUN IN ORDER BEFORE OUTPUTTING JSON):
+
+*** DIVERSITY ENFORCEMENT ALGORITHM ***
+STEP 1 - COUNT AWS ITEMS:
+  - Iterate through top_signals array
+  - Count items where source_url contains "aws.amazon.com" OR "amazonaws.com"
+  - Store count as aws_count
+
+STEP 2 - ENFORCE AWS CAP (IF aws_count > 2):
+  - Rank AWS items by impact/severity
+  - Keep the TOP 2 highest-impact AWS items in top_signals
+  - Move ALL other AWS items (aws_count - 2) to aws_platform_changes
+  - Log: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity"
+
+STEP 3 - ENFORCE NON-AWS REQUIREMENT:
+  - Count non-AWS items in top_signals (items where source_url does NOT contain aws.amazon.com/amazonaws.com)
+  - IF non_aws_count === 0:
+    - Check if security_alerts OR developer_experience has any items
+    - IF YES: Promote the HIGHEST-ranked item from those categories to top_signals
+    - IF NO: Check ai_trends, corporate_competitors for dated/high-impact items and promote 1
+  - Log: "Promoted 1 non-AWS item to top_signals for diversity"
+
+STEP 4 - VALIDATE WHY_IT_MATTERS:
+  - For each item in ALL categories: Assert why_it_matters is non-empty, >10 chars
+  - Reject/omit any item failing this check
+
+STEP 5 - NORMALIZE VERSION-ONLY TITLES:
+  - Rewrite any titles matching /^v?\d+(\.\d+)*$/ per rules above
+
+STEP 6 - FINAL DIVERSITY ASSERTION:
+  - Assert top_signals.length is 3-5 items
+  - Assert aws_count ≤ 2
+  - Assert non_aws_count ≥ 1 (if non-AWS content exists anywhere)
+  - IF ANY assertion fails: Re-run STEPS 1-3 until compliant
 
 FAIL CLOSED: If validation fails, omit the item rather than output invalid data.
+
+*** BEFORE YOU OUTPUT THE FINAL JSON, RE-READ THE DIVERSITY & CAPS SECTION AND VERIFY COMPLIANCE ***
+
+EXAMPLE OF COMPLIANT top_signals (showing diversity):
+✅ GOOD - Diverse sources, MAX 2 AWS:
+[
+  {"title": "AWS Lambda...", "source_url": "https://aws.amazon.com/...", ...},  // AWS #1
+  {"title": "npm: CVE-2025-1234...", "source_url": "https://nvd.nist.gov/...", ...},  // Security (non-AWS)
+  {"title": "Backstage 1.30...", "source_url": "https://backstage.io/...", ...},  // DX (non-AWS)
+  {"title": "DynamoDB pricing...", "source_url": "https://aws.amazon.com/...", ...},  // AWS #2
+  {"title": "EU AI Act deadline...", "source_url": "https://eur-lex.europa.eu/...", ...}  // Regulatory (non-AWS)
+]
+
+❌ BAD - All AWS, violates diversity:
+[
+  {"title": "AWS Lambda...", "source_url": "https://aws.amazon.com/...", ...},  // AWS #1
+  {"title": "DynamoDB outage...", "source_url": "https://aws.amazon.com/...", ...},  // AWS #2
+  {"title": "AWS service sunset...", "source_url": "https://aws.amazon.com/...", ...}  // AWS #3 - VIOLATION!
+]
+^ If you generate output like this, you MUST move the 3rd AWS item to aws_platform_changes
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️  FINAL CHECKPOINT BEFORE RETURNING JSON ⚠️
+
+BEFORE YOU RETURN, VERIFY THE FOLLOWING:
+1. ✓ top_signals has MAX 2 AWS items (aws.amazon.com/amazonaws.com domains)
+2. ✓ top_signals has MIN 1 non-AWS item (if non-AWS content exists)
+3. ✓ top_signals has 3-5 items total with diverse sources
+4. ✓ All why_it_matters fields are non-empty and >10 characters
+5. ✓ No AWS items in top_signals that should be in aws_platform_changes
+
+IF ANY CHECK FAILS: Re-run the POST-PROCESSING GUARDS algorithm above
+═══════════════════════════════════════════════════════════════════════════════
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;
 

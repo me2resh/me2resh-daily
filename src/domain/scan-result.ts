@@ -1,7 +1,7 @@
 export interface TopSignal {
     title: string;
     why_it_matters: string;
-    impact: Array<'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy'>;
+    impact: Array<'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy' | 'Healthtech' | 'AI'>;
     severity: 'high' | 'medium' | 'low';
     source_url: string;
     published_at: string;
@@ -36,14 +36,14 @@ export interface AwsPlatformChange {
 
 export interface AiTrend {
     item: string;
-    category: 'regulatory' | 'clinical' | 'platform' | 'tooling';
+    category: 'regulatory' | 'clinical' | 'platform' | 'tooling' | 'governance';
     summary: string;
     impact: string;
     source_url: string;
     published_at: string;
 }
 
-export interface CorporateHimsHers {
+export interface CorporateCompetitors {
     item: string;
     type: 'press' | 'filing' | 'earnings' | 'media';
     summary: string;
@@ -73,7 +73,7 @@ export interface ScanResult {
     security_alerts: SecurityAlert[];
     aws_platform_changes: AwsPlatformChange[];
     ai_trends: AiTrend[];
-    corporate_hims_hers: CorporateHimsHers[];
+    corporate_competitors: CorporateCompetitors[];
     developer_experience: DeveloperExperience[];
     raw_feed: RawFeed[];
 }

@@ -66,12 +66,13 @@ MISSION: Extract and structure actionable intelligence from the last ${lookbackH
 Current date: ${date}
 Timezone: ${timezone}
 
-⚠️  CRITICAL DIVERSITY MANDATE (READ THIS FIRST) ⚠️
-TOP_SIGNALS MUST HAVE DIVERSE SOURCES:
-- Absolute MAX 2 items from aws.amazon.com/amazonaws.com domains
-- If non-AWS content exists (security, DX, healthtech, competitors), you MUST include ≥1 non-AWS item
-- Target: 3-5 items total with balanced sources
-- This rule overrides all other ranking considerations
+🚨 CRITICAL RULES - VIOLATIONS CORRUPT THE DATASET 🚨
+1. ONLY use URLs from your actual search results/citations - NO fake/invented URLs
+2. If you cannot find real content for an item, DO NOT include it (better 2 real items than 5 fake)
+3. top_signals MAXIMUM 2 AWS items (aws.amazon.com/amazonaws.com domains)
+4. top_signals MUST include non-AWS items when available (security/DX/healthtech/competitors)
+5. Search BROADLY across all domains - not just AWS
+6. Before returning JSON: VERIFY every source_url exists in your citations
 
 TIME WINDOWS (apply different lookback windows by category):
 - AWS platform changes, security vulnerabilities: 24-48 hours
@@ -247,38 +248,42 @@ VALIDATION RULES (ENFORCE BEFORE RETURNING JSON):
 
 POST-PROCESSING GUARDS (MANDATORY - RUN IN ORDER BEFORE OUTPUTTING JSON):
 
+*** URL VALIDATION (STEP 1 - CRITICAL) ***
+- Iterate through EVERY item in ALL categories
+- For EACH item, verify source_url appears in your citations/search_results
+- If source_url is NOT in citations: DELETE that item immediately
+- DO NOT fabricate, guess, or invent URLs under any circumstances
+
 *** DIVERSITY ENFORCEMENT ALGORITHM ***
-STEP 1 - COUNT AWS ITEMS:
+STEP 2 - COUNT AWS ITEMS:
   - Iterate through top_signals array
   - Count items where source_url contains "aws.amazon.com" OR "amazonaws.com"
   - Store count as aws_count
 
-STEP 2 - ENFORCE AWS CAP (IF aws_count > 2):
+STEP 3 - ENFORCE AWS CAP (IF aws_count > 2):
   - Rank AWS items by impact/severity
   - Keep the TOP 2 highest-impact AWS items in top_signals
   - Move ALL other AWS items (aws_count - 2) to aws_platform_changes
-  - Log: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity"
+  - Note: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity"
 
-STEP 3 - ENFORCE NON-AWS REQUIREMENT:
+STEP 4 - ENFORCE NON-AWS REQUIREMENT:
   - Count non-AWS items in top_signals (items where source_url does NOT contain aws.amazon.com/amazonaws.com)
-  - IF non_aws_count === 0:
-    - Check if security_alerts OR developer_experience has any items
-    - IF YES: Promote the HIGHEST-ranked item from those categories to top_signals
-    - IF NO: Check ai_trends, corporate_competitors for dated/high-impact items and promote 1
-  - Log: "Promoted 1 non-AWS item to top_signals for diversity"
+  - IF non_aws_count === 0 AND (security_alerts OR developer_experience has items):
+    - Promote 1 high-ranked item from security_alerts or developer_experience to top_signals
+  - Target: 3-5 items total with MAX 2 AWS, MIN 1 non-AWS (when non-AWS content exists)
 
-STEP 4 - VALIDATE WHY_IT_MATTERS:
+STEP 5 - VALIDATE WHY_IT_MATTERS:
   - For each item in ALL categories: Assert why_it_matters is non-empty, >10 chars
   - Reject/omit any item failing this check
 
-STEP 5 - NORMALIZE VERSION-ONLY TITLES:
+STEP 6 - NORMALIZE VERSION-ONLY TITLES:
   - Rewrite any titles matching /^v?\\d+(\\.\\d+)*$/ per rules above
 
-STEP 6 - FINAL DIVERSITY ASSERTION:
-  - Assert top_signals.length is 3-5 items
-  - Assert aws_count ≤ 2
-  - Assert non_aws_count ≥ 1 (if non-AWS content exists anywhere)
-  - IF ANY assertion fails: Re-run STEPS 1-3 until compliant
+STEP 7 - FINAL VERIFICATION:
+  - Recheck: ALL source_urls exist in your citations (NO fake URLs)
+  - Verify: top_signals has ≤2 AWS items
+  - Verify: top_signals has diverse sources when available
+  - IF any check fails: Re-run STEPS 1-4 until compliant
 
 FAIL CLOSED: If validation fails, omit the item rather than output invalid data.
 
@@ -305,14 +310,15 @@ EXAMPLE OF COMPLIANT top_signals (showing diversity):
 ═══════════════════════════════════════════════════════════════════════════════
 ⚠️  FINAL CHECKPOINT BEFORE RETURNING JSON ⚠️
 
-BEFORE YOU RETURN, VERIFY THE FOLLOWING:
-1. ✓ top_signals has MAX 2 AWS items (aws.amazon.com/amazonaws.com domains)
-2. ✓ top_signals has MIN 1 non-AWS item (if non-AWS content exists)
-3. ✓ top_signals has 3-5 items total with diverse sources
-4. ✓ All why_it_matters fields are non-empty and >10 characters
-5. ✓ No AWS items in top_signals that should be in aws_platform_changes
+MANDATORY VERIFICATION (check ALL of these):
+1. ✓ EVERY source_url appears in your citations/search_results - NO fake URLs
+2. ✓ top_signals has MAX 2 AWS items (aws.amazon.com/amazonaws.com domains)
+3. ✓ top_signals has MIN 1 non-AWS item (if non-AWS content was found)
+4. ✓ top_signals has 3-5 items total with diverse sources
+5. ✓ All why_it_matters fields are non-empty and >10 characters
+6. ✓ Excess AWS items moved to aws_platform_changes
 
-IF ANY CHECK FAILS: Re-run the POST-PROCESSING GUARDS algorithm above
+IF ANY CHECK FAILS: Re-run POST-PROCESSING GUARDS until ALL checks pass
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;

@@ -113,9 +113,11 @@ graph TD
 | **5. HTTP Validation** | URL accessibility | Link integrity | Optional (disabled by default): HEAD/GET check, 10s timeout, 200-299 status |
 | **6. Deduplication** | By canonical URL | Avoid redundancy | Keep item with earlier published_at |
 | **7. Diversification** | Cross-category balance | Comprehensive coverage | ChatGPT instructed to populate ALL categories |
-| **8. Healthcare Cap** | 40% max combined | Prevent medical bias | Healthcare (AI+FHIR) ≤ 40% of total items |
-| **9. Priority Order** | Topic-based ranking | Executive focus | AWS/DX first, then security, then healthcare |
-| **10. Severity Scoring** | High/Medium/Low | Impact assessment | High: compliance, breaking changes, exploits |
+| **8. Source Blacklist** | Noise filtering | Remove low-value sources | serverlessland contributors, youtube, tomsguide, status pages |
+| **9. Healthcare Cap** | 40% max combined | Prevent medical bias | Healthcare (AI+FHIR) ≤ 40% of total items |
+| **10. AWS Cap (top_signals)** | MAX 2 from aws.amazon.com | Prevent AWS flooding | Forces diversity in critical signals |
+| **11. Priority Order** | Topic-based ranking | Executive focus | AWS/DX first, then security, then healthcare |
+| **12. Severity Scoring** | High/Medium/Low | Impact assessment | High: compliance, breaking changes, exploits |
 | **11. Impact Tagging** | 6 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy |
 | **12. Category Limits** | Max 5 per category | Signal vs noise | Independent limits, not 5 total across all |
 | **13. URL Integrity** | Source validation | No hallucination | All URLs must exist in raw_feed_input |
@@ -146,13 +148,21 @@ CHATGPT CATEGORIZATION (45 unique items):
   Healthcare Cap Check: (3 AI + 2 FHIR) / 22 total = 23% ✓ (under 40% limit)
 
   Final Distribution:
-  → Top Signals: 5 items (AWS x2, Security x2, DX x1 - prioritized by impact)
-  → AWS Platform Changes: 5 items (Lambda, EventBridge, DynamoDB, IAM, CloudWatch)
-  → Developer Experience: 5 items (Backstage, platform engineering, DORA metrics)
-  → Security Alerts: 5 items (CVEs for npm, Go, PHP + AWS ALAS)
-  → AI Trends: 3 items (Bedrock, model serving, regulatory deadline)
-  → Trend Watchlist: 5 items (rising DX trends, AWS adoption patterns)
-  → Corporate Hims & Hers: 2 items (earnings, product launch)
+  → Top Signals: 5 items
+     • AWS x2 (MAX 2 from aws.amazon.com - pricing change, security bulletin)
+     • Security x2 (exploited CVE, AWS ALAS with fix)
+     • DX x1 (Backstage golden paths - ensures ≥1 non-AWS)
+  → AWS Platform Changes: 5 items (routine What's New items moved here)
+     • Lambda runtime update, EventBridge schema, DynamoDB pricing, IAM policy update, CloudWatch metric
+  → Developer Experience: 5 items (≥1 non-AWS required)
+     • Backstage plugin, InfoQ platform article, DORA metrics study, CNCF pattern, NestJS release
+  → Security Alerts: 5 items (normalized titles with CVSS)
+     • "npm: CVE-2025-1234 prototype pollution allows RCE (CVSS 9.1)"
+     • "Go stdlib: CVE-2025-5678 path traversal (CVSS 7.5)"
+  → AI Trends: 2 items (0-2 unless dated obligation)
+     • AWS Bedrock cost optimization, EU AI Act deadline 2025-08-02
+  → Trend Watchlist: 5 items (cross-category emerging patterns)
+  → Corporate Hims & Hers: 2 items (material only)
 
 OUTPUT:
   Email: HTML report sent via SES
@@ -227,9 +237,12 @@ All configuration is managed through `layer-config/config/sources.yaml`. This si
 **Diversity & Rebalancing Controls:**
 - **Max items per category**: 5 (hard cap for each section)
 - **Healthcare combined cap**: 40% maximum (prevents medical content dominance)
+- **AWS top_signals cap**: MAX 2 from aws.amazon.com (prevents AWS flooding)
+- **Non-AWS requirement**: ≥1 from DX/Security in top_signals if available
 - **Rebalance mode**: Enabled (automatically balances skewed input)
 - **Primary sources first**: Enabled (prioritizes official sources)
 - **Drop undated commentary**: Enabled (filters noise)
+- **Source blacklist**: serverlessland.com/contributors/*, youtube.com/*, tomsguide.com/*, generic status pages
 
 **RSS Feeds:**
 - 41+ pre-configured RSS sources across 7 categories

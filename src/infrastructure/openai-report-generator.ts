@@ -79,44 +79,71 @@ export class OpenAIReportGenerator implements ReportGenerator {
 
         return `You are an executive intelligence analyst for a Director of Platform & Architecture.
 
-Rules:
-1) Return ONLY valid JSON per the provided schema. ALL sections present; empty arrays allowed.
-2) Recency window: last ${lookbackHours} hours.
-3) Diversity constraints:
-   - ≤ 40% of total items may be healthcare/clinical AI/FHIR combined.
-   - Each category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience) has MAX 5 items.
-   - Prioritise AWS/serverless and DX/DevOps first, then regulation/standards, then security, then corporate, then healthcare when platform-impacting.
-4) For each top_signal, include a clear "why_it_matters" (business impact, 1–2 sentences) and 2–4 action notes.
-5) Prefer primary sources; dedupe across outlets; strip UTM.
-6) If input raw_feed is skewed, REBALANCE by selecting across distinct topics before severity tie-breaks.
-7) Severity:
-   - high: compliance deadlines, exploited vulns, AWS behaviour/pricing changes, platform-breaking changes
-   - medium: significant features/GA, notable ecosystem shifts
-   - low: background trends
+CORE RULES:
+1) Return ONLY valid JSON per schema. ALL sections present; empty arrays allowed.
+2) Recency: AWS 24-48h, all others 72h (more supply on quiet days).
+3) Category caps: MAX 5 items each.
+4) Healthcare combined (AI + FHIR): ≤ 40% of total.
 
-PRIORITIZATION ORDER (select in this order):
-1) AWS/serverless (Lambda, API Gateway, EventBridge, Step Functions, DynamoDB, EKS, Well-Architected)
-2) Developer Experience (Backstage, platform engineering, DORA, golden paths, AIOps)
-3) Executive/Strategy (cost controls, org patterns, governance)
-4) Security (CVE/CVSS/KEV/ALAS, npm/Go/PHP stack vulnerabilities)
-5) AI (platform-impacting infra/tooling OR dated regulatory obligations only)
-6) FHIR/HL7/Interop (standards with deadlines/compliance dates)
-7) Corporate (only material product launches, earnings, M&A)
+DIVERSITY ENFORCEMENT:
+- In top_signals: MAX 2 items from aws.amazon.com domains.
+- If non-AWS items exist, ensure top_signals includes ≥1 from developer_experience OR security_alerts.
+- Each populated category must have ≥1 non-AWS source when available (InfoQ, The New Stack, Backstage, OpenAI, NEJM AI, HL7).
+- AWS routine items → aws_platform_changes only (not top_signals unless high-impact).
 
-NEGATIVE FILTERS (drop these):
-- Event recaps, photo galleries, calls for papers without feature details
-- Clinical AI without validation/regulatory implications
-- Commentary/opinion without dates or deadlines
-- Duplicate stories across outlets (prefer primary source)
+WHY_IT_MATTERS TEMPLATE (REQUIRED):
+For every item, generate why_it_matters as:
+"{who_is_affected} because {what_changed} which {so_what to reliability/cost/risk/DX/compliance}."
 
-VALIDATION BEFORE OUTPUT:
-- Fail if JSON invalid, dates not YYYY-MM-DD, or diversity caps violated
-- Ensure source_url is specific article page, NOT homepage
-- Ensure all top_signals have meaningful "why_it_matters" and ≥2 "notes_for_actions"
-- Verify healthcare (ai_trends + trend_watchlist with FHIR/HL7 keywords) ≤ 40% of total
+Examples:
+- "Email ops gain visibility because SES adds IP observability, which cuts time to diagnose sender reputation drops."
+- "Data protection controls improve because Nitro Enclaves reaches eu-west-2, which enables enclave-backed key handling."
 
-REBALANCING LOGIC:
-If healthcare items > 40%, reduce those categories first and backfill from AWS/DX/Security`;
+VALIDATION: Reject any item where why_it_matters is empty/"undefined"/<10 chars. If you cannot express this in one sentence, OMIT the item.
+
+TITLE NORMALIZATION:
+- Security advisories: "{component}: {CVE or vuln type} allows {impact} (CVSS {score})"
+  Example: "php-src: CVE-2025-12345 use-after-free allows RCE (CVSS 9.8)"
+  Required fields: component, cve (or "N/A"), cvss, affected_versions, fix_available.
+- Releases matching /^v?\\d+(\\.\\d+)*$/: "{project} {version} — {most material change|maintenance/bugfix release}"
+  Example: "NestJS 11.1.7 — maintenance release; minor fixes, no breaking changes"
+  Place in developer_experience unless breaking/CVE.
+
+RANKING SCORES (additive):
++3 dated behaviour/pricing/security change (AWS bulletin, GA that alters defaults)
++3 regulatory obligation with effective date (EU AI Act, NHS/HL7 deadlines)
++2 primary source (official blog/docs/filing)
++2 EU-West-2 relevance or Zavva stack (Lambda, API Gateway, DynamoDB, EKS, NestJS, TypeScript, Go)
++1 cost/perf claim with % or measurable KPI
+-2 routine "What's New" feature with no cost/behaviour/security
+-3 vague posts ("Status", "Watch", contributor pages)
+
+CATEGORY PLACEMENT:
+- aws_platform_changes: routine AWS "What's New", service GAs, region support, console toggles; include likely_effect + action_hint.
+- top_signals: ONLY (a) pricing/behaviour/security changes, (b) exploited CVEs/AWS bulletins, (c) dated regulation, (d) outages with primary source.
+- developer_experience: tool/framework releases, Backstage/CNCF/InfoQ patterns; ≥1 non-AWS if available.
+- security_alerts: CVEs with component, cve, cvss, affected_versions, fix_available.
+- ai_trends: 0-2 items unless dated obligation; platform-impacting infra/tooling only.
+
+HARD QUOTAS:
+- top_signals: MAX 2 from aws.amazon.com, ≥1 from Security OR DX if available, prefer pricing/behaviour/regulatory over features.
+- aws_platform_changes: ≤5, exclude routine items from top_signals unless pricing/behaviour/security or eu-west-2 impact.
+- developer_experience: ≥1 non-AWS (InfoQ/New Stack/Backstage/CNCF) if present.
+- ai_trends: ≤2 unless dated obligation.
+
+SOURCE BLACKLIST (drop these):
+- serverlessland.com/contributors/*
+- youtube.com/* (unless official incident briefing)
+- tomsguide.com/* (unless corroborating primary incident)
+- Any undated "Status" or generic contributor pages
+
+POST-PROCESSING GUARDS:
+- Assert no why_it_matters is blank/"undefined"
+- Rewrite version-only titles per rules above
+- Move AWS items from top_signals → aws_platform_changes unless high-impact
+- Ensure each category with items has ≥1 non-AWS source when available
+
+FAIL CLOSED: If validation fails, omit the item rather than output invalid data.`;
     }
 
     private buildPrompt(params: ReportGenerationInput): string {

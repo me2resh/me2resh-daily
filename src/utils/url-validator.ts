@@ -121,6 +121,22 @@ export function canonicalizeUrl(rawUrl: string): string {
     }
 }
 
+// URL patterns to blacklist (noise sources)
+const BLACKLIST_PATTERNS = [
+    /serverlessland\.com\/contributors\//i, // Generic contributor pages
+    /youtube\.com\//i, // Unless official incident briefing (checked elsewhere)
+    /tomsguide\.com\//i, // Unless corroborating primary incident
+    /\/status\/?$/i, // Generic status pages
+    /\/watch\/?$/i, // Generic watch pages
+];
+
+/**
+ * Check if URL matches blacklist patterns
+ */
+export function isUrlBlacklisted(url: string): boolean {
+    return BLACKLIST_PATTERNS.some((pattern) => pattern.test(url));
+}
+
 /**
  * Check if domain is in allowlist
  */
@@ -157,6 +173,17 @@ export async function validateUrl(rawUrl: string): Promise<ValidatedUrl> {
     try {
         // Canonicalize first
         const canonicalUrl = canonicalizeUrl(rawUrl);
+
+        // Check blacklist first (higher priority than allowlist)
+        if (isUrlBlacklisted(canonicalUrl)) {
+            return {
+                url: canonicalUrl,
+                status: 0,
+                checkedAt,
+                isValid: false,
+                error: 'URL matches blacklist pattern (noise source)',
+            };
+        }
 
         // Check allowlist
         if (!isDomainAllowed(canonicalUrl)) {

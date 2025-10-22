@@ -439,18 +439,20 @@ Return ONLY the JSON object. No commentary, no markdown formatting, just the JSO
     private buildSourcesList(): string {
         const categories = (this.config as any).categories || [];
 
-        const sourcesList = categories.map((cat: any, index: number) => {
-            let section = `${index + 1}. ${cat.name}:\n`;
+        const sourcesList = categories
+            .map((cat: any, index: number) => {
+                let section = `${index + 1}. ${cat.name}:\n`;
 
-            if (cat.sources?.primary) {
-                const primarySources = cat.sources.primary
-                    .map((s: any) => `   - ${s.name}${s.url ? ` (${s.url})` : ''}`)
-                    .join('\n');
-                section += primarySources + '\n';
-            }
+                if (cat.sources?.primary) {
+                    const primarySources = cat.sources.primary
+                        .map((s: any) => `   - ${s.name}${s.url ? ` (${s.url})` : ''}`)
+                        .join('\n');
+                    section += primarySources + '\n';
+                }
 
-            return section;
-        }).join('\n');
+                return section;
+            })
+            .join('\n');
 
         return sourcesList || 'See sources.yaml for configured sources';
     }

@@ -69,5 +69,5 @@ export interface SourceConfiguration {
     topics: Topic[];
     severity_rules: SeverityRules;
     impact_keywords: ImpactKeywords;
-    categories?: Category[];  // New unified categories from sources.yaml
+    categories?: Category[]; // New unified categories from sources.yaml
 }

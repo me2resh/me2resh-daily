@@ -1,0 +1,636 @@
+🛰 Me2resh — Daily Executive Intel Scan Prompt
+
+Role: Director of Platform & Architecture (on CTO track)
+Time: Daily at 05:00 (Europe/London)
+Goal: Aggregate, triage, and summarise only high-signal updates that could affect platform architecture, compliance, developer experience, cost, or strategy at Zavva.
+Priority Domains:
+	1.	AI (healthcare + general platform impact)
+	2.	Serverless & AWS platform
+	3.	FHIR / HL7 / interoperability standards
+	4.	Security advisories
+	5.	Corporate intelligence (Hims & Hers)
+	6.	Broader platform engineering trends
+
+
+🧭 Output Format (strict)
+
+Return a single JSON object:
+
+{
+  "date": "YYYY-MM-DD",
+  "timezone": "Europe/London",
+  "top_signals": [
+    {
+      "title": "",
+      "why_it_matters": "",
+      "impact": ["Regulatory" | "Platform" | "Security" | "DX" | "Cost" | "Org/Strategy"],
+      "severity": ["high", "medium", "low"],
+      "source_url": "",
+      "published_at": "YYYY-MM-DD",
+      "notes_for_actions": ["short imperative items"]
+    }
+  ],
+  "trend_watchlist": [
+    {
+      "topic": "",
+      "summary": "",
+      "trajectory": ["rising","stable","fading"],
+      "sources": ["",""],
+      "source_url": ""
+    }
+  ],
+  "security_alerts": [
+    {
+      "component": "",
+      "cve": "",
+      "cvss": "",
+      "summary": "",
+      "affected_versions": "",
+      "fix_available": true,
+      "source_url": ""
+    }
+  ],
+  "aws_platform_changes": [
+    {
+      "service": "",
+      "change": "",
+      "likely_effect": "",
+      "action_hint": "",
+      "source_url": ""
+    }
+  ],
+  "ai_trends": [
+    {
+      "item": "",
+      "category": ["regulatory","clinical","platform","tooling"],
+      "summary": "",
+      "impact": "",
+      "source_url": "",
+      "published_at": "YYYY-MM-DD"
+    }
+  ],
+  "corporate_hims_hers": [
+    {
+      "item": "",
+      "type": ["press","filing","earnings","media"],
+      "summary": "",
+      "source_url": "",
+      "published_at": "YYYY-MM-DD"
+    }
+  ],
+  "developer_experience": [
+    {
+      "pattern_or_tool": "",
+      "update": "",
+      "relevance_to_platform": "",
+      "source_url": ""
+    }
+  ],
+  "raw_feed": [
+    { "title": "", "source": "", "source_url": "", "published_at": "YYYY-MM-DD" }
+  ]
+}
+
+	•	Max 5 items per category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience).
+	•	Dates must be ISO.
+	•	Deduplicate across sources.
+	•	Always include empty arrays for sections with no updates.
+
+⸻
+
+🥇 Prioritisation Rules
+	1.	Highest priority: AI (healthcare + general) and serverless / AWS platform.
+	2.	Then regulatory (FHIR/HL7, NHS/FDA/MHRA, EU AI Act).
+	3.	Then security advisories (AWS + stack).
+	4.	Then corporate Hims & Hers, platform/DX trends.
+
+Severity scoring:
+	•	High = compliance deadlines, new regulatory obligations, AWS service behaviour changes, exploited vulnerabilities, major cost/security impact.
+	•	Medium = significant feature, ecosystem shifts.
+	•	Low = background trend or advisory.
+
+Map each signal to impact tags:
+	•	Regulatory / Platform / Security / DX / Cost / Org/Strategy.
+
+⸻
+
+📡 Sources by Topic
+
+1. AI (Healthcare + General)
+
+Regulatory & Clinical:
+	•	NEJM AI — https://ai.nejm.org/
+	•	npj Digital Medicine — https://www.nature.com/npjdigitalmed/
+	•	Lancet Digital Health RSS — https://www.thelancet.com/content/rss
+	•	FDA AI/ML SaMD — https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device
+	•	MHRA SaMD — https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-artificial-intelligence-ai-as-a-medical-device
+	•	EU AI Act timeline — https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
+
+General AI & platform:
+	•	TLDR Tech AI section — https://tldr.tech/
+	•	Hugging Face blog — https://huggingface.co/blog
+	•	OpenAI / Anthropic / AWS Bedrock blog
+	•	ThoughtWorks Tech Radar (AIOps & AI Dev Tools)
+
+Extract:
+	•	New regulation or guidance (with effective dates)
+	•	Clinical safety standards
+	•	AI infrastructure / tooling with platform impact (e.g. orchestration, observability, cost)
+	•	Platform AI features (e.g. AWS Bedrock launch updates)
+
+⸻
+
+2. Serverless & AWS Platform
+
+Primary:
+	•	AWS “What’s New” — https://aws.amazon.com/new/
+	•	AWS Compute Blog — https://aws.amazon.com/blogs/compute/
+	•	AWS Architecture Blog — https://aws.amazon.com/blogs/architecture/
+	•	AWS SAM releases — https://github.com/aws/aws-sam-cli/releases
+	•	AWS SAM spec releases — https://github.com/aws/serverless-application-model/releases
+	•	AWS Security Bulletins — https://aws.amazon.com/security/security-bulletins/
+	•	Amazon Linux Security (ALAS) — https://alas.aws.amazon.com/
+
+Also:
+	•	CNCF Blog + KubeWeekly (serverless ecosystem / EKS changes)
+	•	ThoughtWorks Tech Radar
+	•	Backstage blog (DX integrations)
+
+Extract:
+	•	Lambda, API Gateway, EventBridge, Step Functions, DynamoDB, IAM, KMS, VPC, CloudWatch updates.
+	•	Any serverless security bulletin.
+	•	Performance or pricing model changes.
+	•	Serverless developer tooling / pattern shifts.
+	•	Suggested action hints (e.g. RFC, ADR, feature flag).
+
+⸻
+
+3. FHIR / HL7 / Interop
+	•	HL7 blog — https://blog.hl7.org/
+	•	HL7 News — https://hl7news.hl7.org/
+	•	FHIR Foundation — https://fhir.org/
+	•	NHS Digital FHIR — https://digital.nhs.uk/services/fhir-apis
+	•	NHS Interoperability — https://www.england.nhs.uk/long-read/interoperability/
+	•	ONC TEFCA — https://www.healthit.gov/buzz-blog/
+	•	CMS FHIR spotlight — https://www.cms.gov/priorities/burden-reduction/overview/spotlight
+
+Extract:
+	•	Ballot outcomes, spec updates, implementation guides, deadlines
+	•	NHS/ONC adoption timelines
+	•	Implications for data models, interoperability, consent flows.
+
+⸻
+
+4. Security Advisories
+	•	NVD — https://nvd.nist.gov/vuln/data-feeds
+	•	CISA KEV — https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+	•	GitHub Advisory DB — https://github.com/advisories
+	•	AWS Security Bulletins — already above
+	•	PHP security advisories — https://github.com/php/php-src/security/advisories
+
+Filter:
+	•	PHP, NestJS, TypeScript (npm), Golang, AWS, serverless components, OS packages (AL2, AL2023).
+Extract CVE, CVSS, affected versions, fixes, exploitation notes.
+
+⸻
+
+5. Corporate Intelligence — Hims & Hers + UK Competitors
+	•	Investor Relations — https://investors.hims.com/news/default.aspx
+	•	SEC Filings (CIK 0001773751) — https://www.sec.gov/edgar/search/
+	•	Newsroom — https://news.hims.com/
+	•	Yahoo Finance / WSJ / MarketWatch (secondary)
+	•	ASDA Online Doctor — https://onlinedoctor.asda.com/ (UK competitor)
+	•	Zava — https://www.zavamed.com/uk/ (UK competitor)
+
+Extract:
+	•	Product launches, earnings, SEC filings, M&A, org moves, integration-relevant strategy
+	•	UK competitor product offerings, service expansions, pricing changes, regulatory updates
+
+⸻
+
+6. Developer Experience / Engineering Trends
+	•	CNCF Blog, Backstage Blog
+	•	ThoughtWorks Tech Radar
+	•	InfoQ — https://www.infoq.com/news/
+	•	The New Stack — https://thenewstack.io/rss-feeds/
+	•	Golang Weekly, TypeScript Weekly, PyCoder’s Weekly
+	•	TLDR Tech (general dev section)
+
+Extract:
+	•	DX tooling patterns, productivity enablers, AIOps, golden path improvements.
+
+⸻
+
+🧾 Extraction Instructions
+
+For each source:
+	•	Pull new items only (last 48–72h).
+	•	Extract the core change, date, relevance to platform/architecture.
+	•	For AI and serverless → always consider them candidates for top_signals.
+	•	For regulatory items → extract deadlines and affected components.
+	•	For security items → CVE, CVSS, component, fix availability.
+	•	Add notes_for_actions for exec follow-up (e.g. “Open ADR for new Lambda runtime” or “Review AI compliance obligations”).
+
+⸻
+
+🪄 Ranking & Dedupe
+	•	Prefer primary sources over media.
+	•	Deduplicate identical stories across outlets.
+	•	High severity = compliance impact, security exploit, AWS breaking change, AI regulation.
+	•	Map impact tag and severity carefully.
+
+⸻
+
+📨 Delivery Instructions
+	•	Subject: Zavva Platform & Architecture Daily — {YYYY-MM-DD}
+	•	Body:
+	1.	Plain-English bullet list of Top 5 signals from each category.
+	2.	Full JSON object (monospaced).
+	3.	Optional link list of raw sources at the end.
+
+⸻
+
+🧠 Optional Friday Deep Dive
+
+Every Friday, pick 1–2 items from ai_trends or aws_platform_changes with “rising” trajectory in trend_watchlist.
+Generate:
+	•	ADR/RFC candidate
+	•	Estimated impact on platform or compliance
+	•	Recommended owner/team.
+
+⸻
+
+🧨 Failure Tolerance
+	•	If any source fails → skip it, log the failure, continue.
+	•	Never hallucinate data.
+	•	Prefer structured text over prose.
+
+⸻
+
+💡 Example “Top Signals”
+
+[
+  {
+    "title": "EU AI Act – GPAI obligations effective 2025-08-02",
+    "why_it_matters": "Triggers new documentation and transparency requirements for AI systems used in patient-facing workflows.",
+    "impact": ["Regulatory","Platform"],
+    "severity": "high",
+    "source_url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+    "published_at": "2025-10-17",
+    "notes_for_actions": ["Start internal compliance track", "Map AI usage across platform"]
+  },
+  {
+    "title": "AWS Lambda announces new ARM runtime with 30% cost reduction",
+    "why_it_matters": "Potentially lowers cost for async consultation APIs; requires compatibility validation.",
+    "impact": ["Platform","Cost","DX"],
+    "severity": "high",
+    "source_url": "https://aws.amazon.com/new/",
+    "published_at": "2025-10-17",
+    "notes_for_actions": ["Open ADR to evaluate runtime migration"]
+  }
+]
+
+
+
+Here’s a ready-to-paste prompt you can give your daily script. It explains the job, the scan goals, what to fetch from each source, how to rank/dedupe, and the exact output shape. It’s long by design so the script knows what to do without babysitting.
+
+⸻
+
+Daily Executive Intel Scan — Director of Platform & Architecture (Zavva)
+
+Mission:
+At 05:00 Europe/London every day, aggregate, triage, and summarise high-signal updates across: (1) FHIR/HL7 + regulation, (2) AI in healthcare & clinical pathways, (3) corporate news for Hims & Hers (parent), (4) platform/engineering stack (AWS/serverless/K8s/TypeScript/Nest/Golang/PHP), (5) security advisories.
+Optimise for decision-grade signal: what could affect strategy, compliance, platform roadmaps, reliability, cost, or developer experience.
+
+Context:
+Role: Director of Platform & Architecture (path to CTO). Platform hosted on AWS. Mix of serverless and EC2 (legacy PHP monolith), some K8s (Jenkins), NestJS/TypeScript, Golang services, AWS SAM, threat modelling & DevSecOps discipline. You care about DORA outcomes, ADRs, zero-trust, compliance-by-design, and pragmatic AI/AIOps.
+
+⸻
+
+0) Output contract (strict)
+
+Produce one JSON object with these keys:
+
+{
+  "date": "YYYY-MM-DD",
+  "timezone": "Europe/London",
+  "top_signals": [
+    {
+      "title": "",
+      "why_it_matters": "",
+      "impact": ["Regulatory" | "Platform" | "Security" | "DX" | "Cost" | "Org/Strategy"],
+      "severity": ["high","medium","low"],
+      "source_url": "",
+      "published_at": "YYYY-MM-DD",
+      "notes_for_actions": ["short imperative items"]
+    }
+  ],
+  "trend_watchlist": [
+    {
+      "topic": "",
+      "summary": "",
+      "trajectory": ["rising","stable","fading"],
+      "sources": ["",""],
+      "source_url": ""
+    }
+  ],
+  "security_alerts": [
+    {
+      "component": "",
+      "cve": "",
+      "cvss": "",
+      "summary": "",
+      "affected_versions": "",
+      "fix_available": true,
+      "source_url": ""
+    }
+  ],
+  "aws_platform_changes": [
+    {
+      "service": "",
+      "change": "",
+      "likely_effect": "",
+      "action_hint": "",
+      "source_url": ""
+    }
+  ],
+  "corporate_hims_hers": [
+    {
+      "item": "",
+      "type": ["press","filing","earnings","media"],
+      "summary": "",
+      "source_url": "",
+      "published_at": "YYYY-MM-DD"
+    }
+  ],
+  "developer_experience": [
+    {
+      "pattern_or_tool": "",
+      "update": "",
+      "relevance_to_platform": "",
+      "source_url": ""
+    }
+  ],
+  "raw_feed": [
+    { "title": "", "source": "", "source_url": "", "published_at": "YYYY-MM-DD" }
+  ]
+}
+
+Rules:
+	•	Max 5 items per category (top_signals, trend_watchlist, security_alerts, aws_platform_changes, ai_trends, corporate_hims_hers, developer_experience).
+	•	Dates in ISO.
+	•	Deduplicate identical stories across outlets.
+	•	If nothing new for a section, include an empty array for that section.
+
+⸻
+
+1) Prioritisation & triage rules
+	1.	Recency first (published in last 48–72h), then impact (could change compliance, cost, reliability, or roadmap), then credibility (primary sources > secondary press).
+	2.	Prefer primary sources for standards/regulation: HL7/FHIR orgs, ONC, NHS England, FDA, MHRA, EMA. Cite secondary media only to add context.
+	3.	For AWS/platform news, prioritise “What’s New”, AWS blogs, and official docs; then CNCF/K8s SIGs; then InfoQ/The New Stack.
+	4.	For security, prioritise NVD/CISA/GitHub advisories; include CVE/CVSS and affected versions; add a plain-English “likely effect” for PHP, NestJS/TypeScript, Go, AWS components.
+	5.	For Hims & Hers, prefer investor site newsroom and SEC/EDGAR, then major financial press.
+	6.	Mark “severity: high” when a change likely triggers: new compliance work, incident risk, system/integration refactors, cost shifts >10%, or platform guardrails updates.
+	7.	Map to exec impact tags: Regulatory / Platform / Security / DX / Cost / Org/Strategy.
+	8.	Keep notes_for_actions actionable (e.g., “Plan ADR to adopt API Gateway new auth mode”, “Open RFC to deprecate X”, “Raise compliance risk in RiskRegister”).
+
+⸻
+
+2) Sources to scan (grouped, with what to extract)
+
+A) FHIR / HL7 / Interop standards & UK policy
+	•	HL7 official blog/news: https://blog.hl7.org/  → ballot updates, implementation guides, AI initiatives, governance changes.  ￼
+	•	HL7 News (publication): https://hl7news.hl7.org/ → event & program updates.  ￼
+	•	FHIR Foundation: https://fhir.org/ → community links & standard pointers.  ￼
+	•	NHS England / NHS Digital on FHIR: https://digital.nhs.uk/services/fhir-apis and Interoperability pages: https://www.england.nhs.uk/long-read/interoperability/ → UK-specific FHIR API changes and patterns.  ￼
+	•	ONC Health IT blog (US): example TEFCA FHIR roadmap updates: https://www.healthit.gov/buzz-blog/… → exchange requirements & FHIR roadmaps.  ￼
+	•	CMS spotlight / FHIR events: https://www.cms.gov/priorities/burden-reduction/overview/spotlight and Learn About FHIR: https://www.cms.gov/priorities/burden-reduction/overview/interoperability/learn-about-fhir → policy+interop initiatives.  ￼
+	•	HL7 UK blog: https://www.hl7.org.uk/category/blog/ → UK case studies & implementations.  ￼
+
+Extract: new/updated specs, ballot outcomes, guidance that affect data models, APIs, consent flows, or cross-border exchange.
+
+B) AI in healthcare & clinical pathways
+	•	NEJM AI: https://ai.nejm.org/ → methods/policy papers relevant to clinical AI safety and deployment.  ￼
+	•	npj Digital Medicine: https://www.nature.com/npjdigitalmed/ → implementation studies & pathways/diagnostics AI.  ￼
+	•	The Lancet Digital Health (+ RSS): https://www.thelancet.com/journals/landig/home and RSS hub: https://www.thelancet.com/content/rss → practice-changing digital/AI studies.  ￼
+	•	FDA AI/ML SaMD updates & draft guidances: https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device → lifecycle/marketing submissions for AI.  ￼
+	•	MHRA Software & AI as a Medical Device: https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-artificial-intelligence-ai-as-a-medical-device → UK guidance.  ￼
+	•	EU AI Act timeline (official): https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai → applicability dates for prohibitions/GPAI/high-risk medical devices.  ￼
+
+Extract: items that change clinical safety, validation, monitoring, explainability, or documentation obligations; note concrete dates.
+
+C) Corporate — Hims & Hers (parent) + UK Competitors
+	•	Investor Relations: Newsroom & financials: https://investors.hims.com/news/default.aspx and quarterly results page.  ￼
+	•	Newsroom: https://news.hims.com/ (product/strategy announcements).  ￼
+	•	SEC/EDGAR: search CIK 0001773751 (10-K, 10-Q, 8-K, 144): https://www.sec.gov/edgar/search/ → pull filings & material events. Example 2024 10-K.  ￼
+	•	Major press (context only if primary is thin): WSJ/MarketWatch/Yahoo Finance for product/market moves (e.g., menopause/perimenopause launch).  ￼
+	•	ASDA Online Doctor: https://onlinedoctor.asda.com/ → UK competitor service offerings, new treatments, pricing, press releases.  ￼
+	•	Zava: https://www.zavamed.com/uk/ → UK competitor service offerings, new treatments, pricing, press releases.  ￼
+
+Extract: earnings dates/guidance, product line expansions/contractions, regulatory disclosures, subscriber numbers, integration implications. For UK competitors: service expansions, new therapeutic areas, pricing strategy, regulatory compliance changes.
+
+D) AWS & platform engineering (serverless/K8s/DX)
+	•	What’s New at AWS (with RSS): https://aws.amazon.com/new/ → service launches/feature changes.  ￼
+	•	AWS Security Bulletins (RSS): https://aws.amazon.com/security/security-bulletins/ → service vulnerabilities & mitigations.  ￼
+	•	Amazon Linux Security (ALAS): https://alas.aws.amazon.com/ → OS-level advisories.  ￼
+	•	AWS Compute Blog (serverless digests): https://aws.amazon.com/blogs/compute/ → Lambda/API GW/Step Functions updates.  ￼
+	•	AWS Architecture / Well-Architected: https://aws.amazon.com/blogs/architecture/ and Well-Architected docs.  ￼
+	•	CNCF blog/news + KubeWeekly: https://www.cncf.io/blog/ , https://www.cncf.io/news/ , https://www.cncf.io/kubeweekly/ → K8s & ecosystem changes.  ￼
+	•	Thoughtworks Technology Radar (PDF) (semiannual): scan for platform/DX signals. https://www.thoughtworks.com/content/dam/thoughtworks/documents/radar/2025/04/tr_technology_radar_vol_32_en.pdf  ￼
+	•	Backstage (developer portal) blogs: https://backstage.spotify.com/discover/blog/ and https://backstage.io/blog/ → DX patterns/case studies.  ￼
+	•	InfoQ + The New Stack for architecture/DevOps trends (RSS available): https://www.infoq.com/news/ , https://thenewstack.io/rss-feeds/  ￼
+
+Extract: changes that impact cost/perf/security/operability, new serverless or K8s capabilities, DX patterns to adopt/assess.
+
+E) Language/framework releases used at Zavva
+	•	NestJS releases (GitHub): https://github.com/nestjs/nest/releases  ￼
+	•	TypeScript releases (GitHub): https://github.com/microsoft/TypeScript/releases  ￼
+	•	Golang (Go blog for releases/notes): https://go.dev/blog/  (has release posts).  ￼
+	•	AWS SAM CLI & model releases (GitHub):
+	•	CLI: https://github.com/aws/aws-sam-cli/releases  ￼
+	•	SAM spec: https://github.com/aws/serverless-application-model/releases  ￼
+	•	PHP core advisories (GitHub): https://github.com/php/php-src/security/advisories  ￼
+
+Extract: version changes, breaking changes, deprecations, security fixes; show “action_hint” if we should plan upgrades.
+
+F) Security advisories (prioritise our stack)
+	•	NVD (API/feeds): https://nvd.nist.gov/vuln (and data feeds/APIs) → CVEs + CVSS for npm, Go, PHP, OS.  ￼
+	•	CISA Known Exploited Vulnerabilities: https://www.cisa.gov/known-exploited-vulnerabilities-catalog → exploited-in-the-wild prioritisation.  ￼
+	•	GitHub Advisory Database (filter ecosystems: npm, Composer, Go): https://github.com/advisories/  (or community RSS proxy if needed).  ￼
+
+Extract: advisories touching Nest/TypeScript (npm), Golang, PHP, AWS components; include CVE, CVSS, affected versions, fix availability.
+
+G) Useful dev trend newsletters (skim; low weight)
+	•	TLDR (Tech / DevOps / AI feeds): https://tldr.tech/ (various feeds available via community RSS).  ￼
+	•	PyCoder’s Weekly: https://pycoders.com/  (light relevance unless Python shows up in ops/tools).  ￼
+	•	Golang Weekly: https://golangweekly.com/ (RSS available).  ￼
+	•	TypeScript Weekly: https://typescript-weekly.com/ (RSS available).  ￼
+	•	InfoQ/The New Stack (already above) — treat as “contextual trends”, not primary sources.  ￼
+
+⸻
+
+3) Per-topic extraction instructions
+
+Regulation & Standards (FHIR/HL7/ONC/NHS/FDA/MHRA/EU AI Act)
+	•	Pull only new or revised guidance, ballots, implementation guides, or policy timelines.
+	•	Extract: exact requirement or change, who it applies to, a date, and the implication for data models, APIs, safety monitoring, or documentation.
+	•	If AI Act or SaMD guidance updates are present, include a one-liner on obligations and a date (e.g., “GPAI obligations effective 2025-08-02”).  ￼
+
+Corporate (Hims & Hers)
+	•	Scan newsroom + investor pages + SEC for press releases, earnings, guidance updates, product expansions, or risk disclosures.
+	•	Extract subscriber/revenue guidance deltas, new clinical categories (e.g., menopause/perimenopause expansion) and any stated KPIs.  ￼
+	•	Add scheduled earnings events (date/time) when posted.  ￼
+
+AWS/platform
+	•	Parse daily “What’s New” and recent Compute/Architecture posts; prioritise changes to Lambda, API Gateway, EventBridge, Step Functions, DynamoDB, OpenSearch, CloudWatch, IAM, KMS, VPC/LB, EKS.  ￼
+	•	For each, state “likely_effect” (e.g., cost, scale, auth model, latency, reliability) and an “action_hint” (e.g., “Trial new auth mode behind feature flag in sandbox”).
+	•	Include any Well-Architected pillar updates that would affect guardrails or scorecards.  ￼
+
+Kubernetes/CNCF/DX
+	•	Pull CNCF posts that signal maturity/GA for projects we might adopt (policy, supply chain, observability). Include KubeWeekly if it flags notable releases.  ￼
+	•	From Backstage blogs, extract patterns improving golden paths or software templates (developer portal).  ￼
+
+Language/framework releases
+	•	Capture release/tag notes for NestJS, TypeScript, Go, SAM CLI/spec; summarise breaking changes and migration hints.  ￼
+
+Security
+	•	Query NVD for modified feed since last run; filter by ecosystems relevant to npm/Go/PHP and keywords: nestjs, express, typescript, aws, php, golang, golang.org/x, openssl, glibc, linux kernel, al2023, al2. Provide CVE, CVSS, affected versions, and fix availability.  ￼
+	•	Include CISA KEV items if any match those keywords/components.  ￼
+	•	If AWS posts a Security Bulletin, always add to top_signals.  ￼
+
+⸻
+
+4) Ranking & dedupe
+	•	If multiple articles cover the same event, keep the primary (official page/filing/standard) and attach the best secondary analysis as context in notes_for_actions.
+	•	Prefer items with specific dates and explicit obligations over commentary.
+	•	Collapse near-duplicate AWS posts (e.g., blog + “What’s New”) into one aws_platform_changes entry.
+
+⸻
+
+5) Guardrails & tone
+	•	Be concise; avoid hype. Use active voice.
+	•	Use British English.
+	•	Explain acronyms on first use (ONC, TEFCA, GPAI, SaMD, AIOps).
+	•	Map items to patterns where apt: DORA outcomes, ADRs for major changes, zero-trust for auth/network, event-driven patterns for interop.
+
+⸻
+
+6) Example “top_signals” shaping (illustrative)
+	•	“EU AI Act — GPAI obligations effective 2025-08-02; clarify model documentation & transparency for any GPAI used in production workflows.” Severity: high; Impact: Regulatory.  ￼
+	•	“AWS Serverless: quarterly recap highlights Lambda feature X → potential cold-start reduction; evaluate for latency-sensitive endpoints.” Impact: Platform/DX.  ￼
+	•	“Hims & Hers sets Q3 results date; watch for guidance changes affecting integration priorities.” Impact: Org/Strategy.  ￼
+
+⸻
+
+7) Failure modes
+	•	If a source times out or returns nothing new, don’t block; continue with others and record nothing for that section.
+	•	Never fabricate dates or numbers; if a figure is only in press coverage, prefer quoting the IR page/filing.
+
+⸻
+
+8) Delivery
+	•	Email subject: Zavva Platform & Architecture Daily — {YYYY-MM-DD}
+	•	Body: lead with the 3–5 top_signals, then render the JSON (monospace).
+
+⸻
+
+9) Nice-to-have (optional weekly deep dive)
+	•	On Fridays, add a short prose section “Deep Dive Candidate” from trend_watchlist with links, and propose an ADR/RFC topic.
+
+⸻
+
+Notes on cited examples and why they matter
+	•	HL7/HL7 UK/NHS England pages are the authoritative places where FHIR implementations and UK API policies update.  ￼
+	•	ONC/CMS posts drive U.S. interop policy and FHIR exchange (TEFCA).  ￼
+	•	EU AI Act dates are staggered (prohibitions and GPAI obligations before high-risk medical devices), which affects roadmap gating.  ￼
+	•	Hims & Hers IR + SEC pages provide primary, timestamped disclosures; newsroom covers product scope expansions (e.g., menopause/perimenopause).  ￼
+	•	AWS “What’s New”, Security Bulletins, Compute/Architecture blogs are the most reliable signal for feature changes and mitigations.  ￼
+	•	CNCF + KubeWeekly surface ecosystem shifts that influence EKS/Jenkins/K8s decisions.  ￼
+	•	Release feeds for NestJS/TypeScript/Go/SAM inform upgrade windows and breaking changes.  ￼
+	•	NVD/CISA/GitHub advisories are baseline for vulnerability triage and patching SLAs.  ￼
+
+⸻
+
+10) Source list (URLs for the fetcher)
+
+Put these into your fetcher as RSS/HTTP GETs; many have RSS; for pages without RSS, scrape the latest post headlines and links.
+
+# Standards & UK policy
+https://blog.hl7.org/
+https://hl7news.hl7.org/
+https://fhir.org/
+https://digital.nhs.uk/services/fhir-apis
+https://www.england.nhs.uk/long-read/interoperability/
+https://www.healthit.gov/buzz-blog/tefca/fhir-roadmap-for-tefca-exchange-v-2-fhir-apis-are-on-their-way-into-tefca-exchange
+https://www.healthit.gov/buzz-blog/healthit-certification/ensuring-health-it-api-accessibility-for-seamless-data-exchange
+https://www.cms.gov/priorities/burden-reduction/overview/spotlight
+https://www.cms.gov/priorities/burden-reduction/overview/interoperability/learn-about-fhir
+
+# AI in healthcare
+https://ai.nejm.org/
+https://www.nature.com/npjdigitalmed/
+https://www.thelancet.com/journals/landig/home
+https://www.thelancet.com/content/rss
+https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device
+https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-artificial-intelligence-ai-as-a-medical-device
+https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
+
+# Corporate (Hims & Hers)
+https://investors.hims.com/news/default.aspx
+https://investors.hims.com/financials/quarterly-results/default.aspx
+https://investors.hims.com/financials/sec-filings/default.aspx
+https://www.sec.gov/edgar/search/#/entityName=Hims%20&%20Hers%20Health,%20Inc.
+https://news.hims.com/
+
+# AWS/platform
+https://aws.amazon.com/new/
+https://aws.amazon.com/security/security-bulletins/
+https://alas.aws.amazon.com/
+https://aws.amazon.com/blogs/compute/
+https://aws.amazon.com/blogs/architecture/
+https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html
+https://www.cncf.io/blog/
+https://www.cncf.io/news/
+https://www.cncf.io/kubeweekly/
+https://www.thoughtworks.com/content/dam/thoughtworks/documents/radar/2025/04/tr_technology_radar_vol_32_en.pdf
+https://backstage.spotify.com/discover/blog/
+https://backstage.io/blog/
+https://www.infoq.com/news/
+https://thenewstack.io/rss-feeds/
+
+# Releases (stack)
+https://github.com/nestjs/nest/releases
+https://github.com/microsoft/TypeScript/releases
+https://go.dev/blog/
+https://github.com/aws/aws-sam-cli/releases
+https://github.com/aws/serverless-application-model/releases
+https://github.com/php/php-src/security/advisories
+
+# Security
+https://nvd.nist.gov/vuln
+https://nvd.nist.gov/vuln/data-feeds
+https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+https://github.com/advisories
+
+
+⸻
+
+11) Post-processing (quality bar)
+	•	Convert all dates to ISO UTC and keep the local timestamp in parentheses where available.
+	•	Strip UTM parameters from links.
+	•	Normalise titles (source — headline).
+	•	If you include figures (revenue, subscribers), quote the primary source; avoid copying press estimates.
+
+⸻
+
+12) Suggested “next actions” mapping (when relevant)
+	•	ADRs: propose ADRs for platform-wide shifts (e.g., new AWS auth mode, eventing pattern, regionalisation).
+	•	DORA goals: flag items that would reduce change failure rate / lead time.
+	•	Zero-trust: tag items affecting identity, workload isolation, or encryption posture.
+	•	Compliance: create a RiskRegister note for any regulatory date or AI obligation.
+
+⸻
+
+One tiny joke to keep us human
+
+If anything in the feed says “seamless integration”, raise severity to high—because that’s usually a prophecy, not a fact.

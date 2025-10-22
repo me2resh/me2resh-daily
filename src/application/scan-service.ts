@@ -1,7 +1,5 @@
 import { ScanResult } from '@/domain/scan-result';
 import { SourceConfiguration } from '@/domain/source-config';
-import { ReportGenerator } from '@/infrastructure/report-generator';
-import { SourceFetcher, ValidatedRawFeed } from '@/infrastructure/source-fetcher';
 import { ResearchService } from './research-service';
 import { PromptLog } from '@/infrastructure/report-storage';
 import { logger } from '@/utils/logger';
@@ -11,270 +9,59 @@ export interface ScanServiceResult {
     prompts: PromptLog;
 }
 
-export interface RawFeedInputItem {
-    title: string;
-    source: string;
-    source_url: string;
-    published_at: string;
-    domain: string;
-    status_code: number;
-    checked_at: string;
-}
-
 export class ScanService {
-    constructor(
-        private config: SourceConfiguration,
-        private sourceFetcher: SourceFetcher,
-        private reportGenerator: ReportGenerator,
-        private researchService?: ResearchService,
-    ) {}
+    constructor(private config: SourceConfiguration, private researchService: ResearchService) {}
 
     async performScan(): Promise<ScanServiceResult> {
-        logger.info('Starting daily scan', {
+        logger.info('Starting Perplexity-only daily scan', {
             timezone: this.config.scan_config.timezone,
             lookbackHours: this.config.scan_config.lookback_hours,
         });
 
         const scanDate = new Date().toISOString().split('T')[0];
+        const timezone = this.config.scan_config.timezone;
         const prompts: PromptLog = {};
 
-        // Step 1: Fetch all RSS feeds and validate URLs
-        logger.info('Fetching RSS feeds from all sources');
-        const rssItems = await this.fetchAllSources();
+        // Perform Perplexity research (returns complete ScanResult)
+        logger.info('Performing Perplexity research for complete report');
+        const perplexityResult = await this.researchService.performResearch(scanDate, timezone);
 
-        logger.info('RSS feeds fetched', {
-            totalSources: this.getTotalSourceCount(),
-            totalItems: rssItems.length,
-        });
-
-        // Step 2: Perform Perplexity research (if enabled)
-        let researchItems: ValidatedRawFeed[] = [];
-        if (this.researchService) {
-            logger.info('Performing Perplexity research');
-            const perplexityResult = await this.researchService.performResearch();
-
-            // Convert Perplexity items to ValidatedRawFeed format
-            researchItems = perplexityResult.items.map((item) => ({
-                ...item,
-                status_code: 200, // Perplexity citations are assumed valid
-                checked_at: new Date().toISOString(),
-            }));
-
-            // Save Perplexity query
-            if (perplexityResult.query) {
-                prompts.perplexity = {
-                    query: perplexityResult.query,
-                    timestamp: new Date().toISOString(),
-                };
-            }
-
-            logger.info('Perplexity research completed', {
-                researchItems: researchItems.length,
-            });
-        }
-
-        // Step 3: Merge RSS + Research items
-        const allItems = [...rssItems, ...researchItems];
-
-        logger.info('Combined RSS + Research items', {
-            rssItems: rssItems.length,
-            researchItems: researchItems.length,
-            totalItems: allItems.length,
-        });
-
-        // Step 4: Build raw_feed_input for ChatGPT
-        const rawFeedInput = this.buildRawFeedInput(allItems);
-
-        logger.info('Built raw_feed_input', {
-            itemCount: rawFeedInput.length,
-        });
-
-        // Step 5: If no new items, return empty result (skip ChatGPT call to save costs)
-        if (rawFeedInput.length === 0) {
-            logger.warn('No new items found in 72h window, skipping ChatGPT call');
-            return {
-                scanResult: {
-                    date: scanDate,
-                    timezone: this.config.scan_config.timezone,
-                    top_signals: [],
-                    trend_watchlist: [],
-                    security_alerts: [],
-                    aws_platform_changes: [],
-                    ai_trends: [],
-                    corporate_hims_hers: [],
-                    developer_experience: [],
-                    raw_feed: [],
-                },
-                prompts,
+        // Save Perplexity query
+        if (perplexityResult.query) {
+            prompts.perplexity = {
+                query: perplexityResult.query,
+                timestamp: new Date().toISOString(),
             };
         }
 
-        // Step 6: Send to ChatGPT for analysis
-        logger.info('Sending to ChatGPT for analysis', {
-            inputItems: rawFeedInput.length,
-            rssCount: rssItems.length,
-            researchCount: researchItems.length,
-        });
-
-        const generationResult = await this.reportGenerator.generateReport({
+        // Ensure report has required fields
+        const scanResult: ScanResult = {
             date: scanDate,
-            timezone: this.config.scan_config.timezone,
-            items: rawFeedInput,
-            lookback_hours: this.config.scan_config.lookback_hours,
-        });
-
-        // Save ChatGPT prompts
-        prompts.chatgpt = {
-            system_prompt: generationResult.systemPrompt,
-            user_prompt: generationResult.userPrompt,
-            timestamp: new Date().toISOString(),
+            timezone,
+            top_signals: perplexityResult.report.top_signals || [],
+            trend_watchlist: perplexityResult.report.trend_watchlist || [],
+            security_alerts: perplexityResult.report.security_alerts || [],
+            aws_platform_changes: perplexityResult.report.aws_platform_changes || [],
+            ai_trends: perplexityResult.report.ai_trends || [],
+            corporate_competitors: perplexityResult.report.corporate_competitors || [],
+            developer_experience: perplexityResult.report.developer_experience || [],
+            raw_feed: perplexityResult.report.raw_feed || [],
         };
 
-        logger.info('Report generated by ChatGPT', {
-            topSignals: generationResult.report.top_signals?.length ?? 0,
-            securityAlerts: generationResult.report.security_alerts?.length ?? 0,
-            awsChanges: generationResult.report.aws_platform_changes?.length ?? 0,
-            aiTrends: generationResult.report.ai_trends?.length ?? 0,
-            rawFeedUsed: generationResult.report.raw_feed?.length ?? 0,
+        logger.info('Perplexity scan completed', {
+            topSignals: scanResult.top_signals.length,
+            trendWatchlist: scanResult.trend_watchlist.length,
+            securityAlerts: scanResult.security_alerts.length,
+            awsChanges: scanResult.aws_platform_changes.length,
+            aiTrends: scanResult.ai_trends.length,
+            corporateCompetitors: scanResult.corporate_competitors.length,
+            developerExperience: scanResult.developer_experience.length,
+            rawFeed: scanResult.raw_feed.length,
         });
 
         return {
-            scanResult: generationResult.report,
+            scanResult,
             prompts,
         };
-    }
-
-    private async fetchAllSources(): Promise<ValidatedRawFeed[]> {
-        const allItems: ValidatedRawFeed[] = [];
-
-        // Fetch from all topics in parallel
-        const topicPromises = this.config.topics.map(async (topic) => {
-            logger.info('Fetching topic sources', {
-                topic: topic.name,
-                sourceCount: topic.sources.length,
-            });
-
-            // Fetch all sources within a topic in parallel
-            const sourcePromises = topic.sources.map(async (source) => {
-                try {
-                    const items = await this.sourceFetcher.fetchSource(
-                        source,
-                        this.config.scan_config.lookback_hours,
-                    );
-
-                    logger.info('Source fetched', {
-                        source: source.name,
-                        itemCount: items.length,
-                    });
-
-                    return items;
-                } catch (error) {
-                    logger.error('Failed to fetch source', {
-                        source: source.name,
-                        error: error instanceof Error ? error.message : String(error),
-                    });
-                    return [];
-                }
-            });
-
-            const topicItems = await Promise.all(sourcePromises);
-            return topicItems.flat();
-        });
-
-        const topicResults = await Promise.all(topicPromises);
-        allItems.push(...topicResults.flat());
-
-        // Deduplicate by canonical URL
-        const uniqueItems = this.deduplicateItems(allItems);
-
-        logger.info('Deduplication complete', {
-            before: allItems.length,
-            after: uniqueItems.length,
-            removed: allItems.length - uniqueItems.length,
-        });
-
-        return uniqueItems;
-    }
-
-    /**
-     * Normalize title for fuzzy matching
-     * Removes common words, punctuation, and standardizes format
-     */
-    private normalizeTitle(title: string): string {
-        return title
-            .toLowerCase()
-            .replace(/[^\w\s]/g, ' ') // Remove punctuation
-            .replace(/\b(the|a|an|and|or|of|in|on|at|to|for|with|by)\b/g, '') // Remove common words
-            .replace(/\s+/g, ' ') // Collapse whitespace
-            .trim();
-    }
-
-    private deduplicateItems(items: ValidatedRawFeed[]): ValidatedRawFeed[] {
-        const seen = new Map<string, ValidatedRawFeed>();
-        const titleIndex = new Map<string, string>(); // normalized title -> URL mapping
-
-        for (const item of items) {
-            // Use canonical URL as primary key
-            const urlKey = item.source_url.toLowerCase();
-
-            // Normalize title for fuzzy matching
-            const normalizedTitle = this.normalizeTitle(item.title);
-
-            // Check if we've seen this URL before
-            if (!seen.has(urlKey)) {
-                // Check if we've seen a similar title before
-                const existingUrlForTitle = titleIndex.get(normalizedTitle);
-
-                if (existingUrlForTitle) {
-                    // Similar title exists - keep the one with earlier published date
-                    const existing = seen.get(existingUrlForTitle);
-                    if (existing && new Date(item.published_at) < new Date(existing.published_at)) {
-                        // Replace existing with this one (earlier date)
-                        seen.delete(existingUrlForTitle);
-                        titleIndex.set(normalizedTitle, urlKey);
-                        seen.set(urlKey, item);
-
-                        logger.debug('Replaced duplicate title with earlier date', {
-                            kept: item.title,
-                            removed: existing.title,
-                            normalizedTitle,
-                        });
-                    } else {
-                        logger.debug('Skipped duplicate title (later date)', {
-                            skipped: item.title,
-                            existing: existing?.title,
-                        });
-                    }
-                } else {
-                    // New title, new URL - add it
-                    seen.set(urlKey, item);
-                    titleIndex.set(normalizedTitle, urlKey);
-                }
-            } else {
-                // Exact URL match - keep the one with earlier published date
-                const existing = seen.get(urlKey);
-                if (existing && new Date(item.published_at) < new Date(existing.published_at)) {
-                    seen.set(urlKey, item);
-                }
-            }
-        }
-
-        return Array.from(seen.values());
-    }
-
-    private buildRawFeedInput(items: ValidatedRawFeed[]): RawFeedInputItem[] {
-        return items.map((item) => ({
-            title: item.title,
-            source: item.source,
-            source_url: item.source_url,
-            published_at: item.published_at,
-            domain: item.domain,
-            status_code: item.status_code,
-            checked_at: item.checked_at,
-        }));
-    }
-
-    private getTotalSourceCount(): number {
-        return this.config.topics.reduce((sum, topic) => sum + topic.sources.length, 0);
     }
 }

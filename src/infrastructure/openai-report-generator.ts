@@ -33,7 +33,7 @@ export class OpenAIReportGenerator implements ReportGenerator {
     }
 
     async generateReport(params: ReportGenerationInput): Promise<ReportGenerationResult> {
-        const systemPrompt = this.buildSystemPrompt(params);
+        const systemPrompt = this.buildSystemPrompt();
         const userPrompt = this.buildPrompt(params);
 
         logger.info('Requesting report from OpenAI', {
@@ -74,9 +74,7 @@ export class OpenAIReportGenerator implements ReportGenerator {
         }
     }
 
-    private buildSystemPrompt(params: ReportGenerationInput): string {
-        const lookbackHours = params.lookback_hours || 24;
-
+    private buildSystemPrompt(): string {
         return `You are an executive intelligence analyst for a Director of Platform & Architecture.
 
 CORE RULES:

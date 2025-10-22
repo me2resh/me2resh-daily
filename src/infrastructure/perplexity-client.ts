@@ -1,3 +1,4 @@
+import { ScanResult } from '@/domain/scan-result';
 import { logger } from '@/utils/logger';
 
 export interface PerplexityCitation {
@@ -32,7 +33,7 @@ export class PerplexityClient {
             throw new Error('PERPLEXITY_API_KEY is not set');
         }
         this.apiKey = apiKey;
-        this.model = process.env.PERPLEXITY_MODEL || 'sonar';
+        this.model = process.env.PERPLEXITY_MODEL || 'sonar-pro';
     }
 
     async search(query: string): Promise<PerplexitySearchResult> {
@@ -114,6 +115,75 @@ export class PerplexityClient {
                 .replace(/\b\w/g, (l) => l.toUpperCase());
         } catch {
             return url;
+        }
+    }
+
+    async searchStructured(query: string): Promise<Partial<ScanResult>> {
+        logger.info('Sending structured query to Perplexity', {
+            model: this.model,
+            queryLength: query.length,
+        });
+
+        try {
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: query,
+                        },
+                    ],
+                    temperature: 0.1, // Lower for factual accuracy
+                    max_tokens: 6000, // Increased for full JSON response
+                    return_citations: true,
+                    return_related_questions: false,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                logger.error('Perplexity API error', {
+                    status: response.status,
+                    error: errorText,
+                });
+                throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || '';
+
+            logger.info('Perplexity structured response received', {
+                contentLength: content.length,
+                citationsCount: data.citations?.length ?? 0,
+            });
+
+            // Parse JSON from response
+            try {
+                // Extract JSON from markdown code blocks if present
+                const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
+                const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+
+                const parsed = JSON.parse(jsonString);
+                logger.info('Successfully parsed Perplexity JSON response');
+                return parsed;
+            } catch (parseError) {
+                logger.error('Failed to parse Perplexity response as JSON', {
+                    error: parseError instanceof Error ? parseError.message : String(parseError),
+                    content: content.substring(0, 500),
+                });
+                throw new Error('Perplexity response was not valid JSON');
+            }
+        } catch (error) {
+            logger.error('Failed to query Perplexity', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
         }
     }
 

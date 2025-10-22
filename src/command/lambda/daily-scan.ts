@@ -3,15 +3,11 @@ import { ConfigLoader } from '@/utils/config-loader';
 import { ScanService } from '@/application/scan-service';
 import { ResearchService } from '@/application/research-service';
 import { SESEmailSender } from '@/infrastructure/email-sender';
-import { OpenAIReportGenerator } from '@/infrastructure/openai-report-generator';
-import { HttpSourceFetcher } from '@/infrastructure/source-fetcher';
 import { PerplexityClient } from '@/infrastructure/perplexity-client';
 import { S3ReportStorage } from '@/infrastructure/report-storage';
 import { logger } from '@/utils/logger';
 
 const configLoader = ConfigLoader.getInstance();
-const sourceFetcher = new HttpSourceFetcher();
-const reportGenerator = new OpenAIReportGenerator();
 const emailSender = new SESEmailSender();
 const reportStorage = new S3ReportStorage();
 
@@ -45,34 +41,19 @@ export const lambdaHandler = async (event: DailyScanEvent): Promise<void> => {
             });
             config.scan_config.lookback_hours = lookbackHoursOverride;
         }
-        logger.info('Configuration loaded', {
-            topicCount: config.topics.length,
+        logger.info('Configuration loaded (Perplexity-only mode)', {
             emailTo: config.email.to_address,
+            lookbackHours: config.scan_config.lookback_hours,
         });
 
-        // Initialize services
-        let researchService: ResearchService | undefined;
+        // Initialize Perplexity-only services
+        const perplexityClient = new PerplexityClient();
+        const researchService = new ResearchService(config, perplexityClient);
+        const scanService = new ScanService(config, researchService);
 
-        // Only create Perplexity client if research is enabled and API key is set
-        if (config.scan_config.enable_perplexity_research && process.env.PERPLEXITY_API_KEY) {
-            try {
-                const perplexityClient = new PerplexityClient();
-                researchService = new ResearchService(config, perplexityClient);
-                logger.info('Perplexity research enabled');
-            } catch (error) {
-                logger.warn('Failed to initialize Perplexity client, continuing without research', {
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            }
-        } else {
-            logger.info('Perplexity research disabled', {
-                enabled: config.scan_config.enable_perplexity_research,
-                hasApiKey: !!process.env.PERPLEXITY_API_KEY,
-            });
-        }
+        logger.info('Services initialized (Perplexity-only architecture)');
 
-        // Perform the scan - Fetch RSS feeds + Perplexity research, then analyze with ChatGPT
-        const scanService = new ScanService(config, sourceFetcher, reportGenerator, researchService);
+        // Perform the scan - Perplexity returns complete ScanResult
         const { scanResult, prompts } = await scanService.performScan();
 
         logger.info('Scan completed successfully', {

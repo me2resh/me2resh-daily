@@ -15,16 +15,10 @@ Parameters:
     Description: Verified SES email address to send from
     Default: ""
 
-  OpenAIApiKey:
-    Type: String
-    Description: OpenAI API key for ChatGPT analysis
-    NoEcho: true
-
   PerplexityApiKey:
     Type: String
-    Description: Perplexity API key for web research (optional)
+    Description: Perplexity API key for intelligence research (required)
     NoEcho: true
-    Default: ""
 
   EnableUrlValidation:
     Type: String
@@ -46,10 +40,8 @@ Globals:
       Variables:
         TO_EMAIL_ADDRESS: !Ref ToEmailAddress
         FROM_EMAIL_ADDRESS: !Ref FromEmailAddress
-        OPENAI_API_KEY: !Ref OpenAIApiKey
         PERPLEXITY_API_KEY: !Ref PerplexityApiKey
         CONFIG_PATH: /opt/config/sources.yaml   # read from the layer
-        REQUIREMENT_PATH: /opt/config/REQUIREMENTS.txt   # read from the layer
         REPORTS_BUCKET_NAME: me2resh-daily-scan
         ENABLE_URL_VALIDATION: !Ref EnableUrlValidation
 
@@ -83,7 +75,7 @@ Resources:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: me2resh-daily-config
-      Description: Static configuration for me2resh-daily (sources.yaml)
+      Description: Static configuration for me2resh-daily (Perplexity-only mode)
       ContentUri: layer-config/                # repo path: layer-config/config/sources.yaml
       CompatibleRuntimes: [ nodejs18.x ]
       LicenseInfo: MIT
@@ -94,7 +86,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: daily-scan.lambdaHandler
-      Description: Performs daily scan of platform and architecture sources
+      Description: Performs daily intelligence scan using Perplexity (sonar-pro)
       Policies:
         - Version: '2012-10-17'
           Statement:

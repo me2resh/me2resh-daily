@@ -1,7 +1,9 @@
 export interface TopSignal {
     title: string;
     why_it_matters: string;
-    impact: Array<'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy' | 'Healthtech' | 'AI'>;
+    impact: Array<
+        'Regulatory' | 'Platform' | 'Security' | 'DX' | 'Cost' | 'Org/Strategy' | 'Healthtech' | 'AI'
+    >;
     severity: 'high' | 'medium' | 'low';
     source_url: string;
     published_at: string;

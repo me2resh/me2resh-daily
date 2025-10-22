@@ -1,6 +1,6 @@
 # Me2resh Daily - Executive Intelligence Scan
 
-AI-powered serverless scanner that aggregates healthcare tech, AWS platform updates, and security insights from 41+ sources into daily executive reports with archived web access.
+AI-powered serverless scanner that uses Perplexity (sonar-pro) to research and aggregate healthcare tech, AWS platform updates, and security insights into daily executive reports with archived web access.
 
 ## Overview
 
@@ -17,158 +17,134 @@ This application is designed for Director-level technical leadership (Platform &
 
 ### High-Level Data Flow
 
-**Simplified View:**
+**Simplified View (Perplexity-Only Mode):**
 ```
-RSS Feeds (41+ sources) ──┐
-                          ├──→ Merge → ChatGPT Analysis → Email → S3 Archive
-Perplexity Research ──────┘                                      (HTML + JSON)
-(ONE combined query)
+Perplexity Research ──→ Structured JSON Response ──→ Email → S3 Archive
+(sonar-pro model)        (Complete ScanResult)             (HTML + JSON)
 ```
 
-### Detailed Data Flow with Filtering & Prioritization
+### Detailed Data Flow (Perplexity-Only Architecture)
 
 ```mermaid
 graph TD
     Start([Lambda Trigger<br/>Daily 05:00 UTC]) --> Config[Load Config<br/>sources.yaml]
 
-    Config --> ParallelFetch{Parallel Data<br/>Collection}
+    Config --> BuildPrompt[Build Comprehensive Prompt<br/>Includes all categories<br/>Diversity rules<br/>lookback_hours]
 
-    %% RSS Feed Path
-    ParallelFetch -->|RSS Track| RSS[Fetch RSS Feeds<br/>41+ sources]
-    RSS --> RSSParse[Parse RSS Items<br/>Max 50/feed]
-    RSSParse --> TimeFilter[Time Filter<br/>lookback_hours: 24h]
-    TimeFilter --> URLCanon[URL Canonicalization<br/>• Force HTTPS<br/>• Remove tracking params<br/>• Normalize paths]
-    URLCanon --> DomainCheck{Domain<br/>Allowlist?}
-    DomainCheck -->|✓ Trusted| HTTPCheck[HTTP Validation<br/>HEAD/GET request]
-    DomainCheck -->|✗ Unknown| Drop1[Drop Item]
-    HTTPCheck -->|200-299| RSSValid[ValidatedRawFeed]
-    HTTPCheck -->|4xx/5xx| Drop2[Drop Item]
+    BuildPrompt --> PerplexAPI[Perplexity API<br/>sonar-pro model<br/>temp: 0.1<br/>max_tokens: 6000]
 
-    %% Perplexity Path
-    ParallelFetch -->|Research Track| PerplexCheck{Perplexity<br/>Enabled?}
-    PerplexCheck -->|Yes| BuildQuery[Build Dynamic Query<br/>All 7 categories<br/>lookback_hours]
-    PerplexCheck -->|No| SkipPerp[Skip Research]
-    BuildQuery --> PerplexAPI[Perplexity API<br/>sonar model<br/>temp: 0.2]
-    PerplexAPI --> ParseCite[Parse Citations<br/>Extract URLs + dates]
-    ParseCite --> PerplexValid[PerplexityResearchItem]
+    PerplexAPI --> ParseJSON[Parse JSON Response<br/>Extract from markdown<br/>if needed]
 
-    %% Merge Stage
-    RSSValid --> Merge[Merge Items<br/>RSS + Perplexity]
-    PerplexValid --> Merge
-    SkipPerp --> Merge
+    ParseJSON --> ValidateResult{Valid<br/>ScanResult?}
 
-    Merge --> Dedup[Deduplicate by URL<br/>Keep earlier published_at]
-    Dedup --> EmptyCheck{Items > 0?}
-    EmptyCheck -->|No| EmptyReport[Return Empty Report<br/>Skip ChatGPT to save cost]
-    EmptyCheck -->|Yes| BuildInput[Build Raw Feed Input<br/>JSON structure for ChatGPT]
+    ValidateResult -->|✓ Valid| StructuredData[Complete ScanResult<br/>All categories populated]
+    ValidateResult -->|✗ Error| EmptyReport[Return Empty Report<br/>All categories empty arrays]
 
-    %% ChatGPT Analysis
-    BuildInput --> ChatGPT[ChatGPT Analysis<br/>gpt-4o-mini<br/>temp: 0.3]
+    StructuredData --> TopSignals[Top Signals<br/>• MAX 2 from aws.amazon.com<br/>• Severity: high/medium/low<br/>• why_it_matters required]
+    StructuredData --> TrendWatch[Trend Watchlist<br/>• rising/stable/fading<br/>• Cross-source patterns]
+    StructuredData --> Security[Security Alerts<br/>• CVE + CVSS required<br/>• affected_versions + fix_available]
+    StructuredData --> AWSChanges[AWS Platform Changes<br/>• likely_effect + action_hint<br/>• Routine What's New items]
+    StructuredData --> AITrends[AI Trends<br/>• 0-2 items unless dated obligation<br/>• Platform-impacting only]
+    StructuredData --> Corporate[Corporate Competitors<br/>• Hims & Hers, Zava, Doctolib<br/>• press/filing/earnings/media]
+    StructuredData --> DevEx[Developer Experience<br/>• ≥1 non-AWS if available<br/>• Backstage/CNCF/InfoQ patterns]
 
-    ChatGPT --> Categorize{Categorize Items<br/>Max 5 per category}
-
-    Categorize --> TopSignals[Top Signals<br/>• Severity: high/medium/low<br/>• Impact tags<br/>• why_it_matters]
-    Categorize --> AITrends[AI Trends<br/>• regulatory/clinical/platform/tooling<br/>• Healthcare + general AI]
-    Categorize --> AWSChanges[AWS Platform Changes<br/>• Lambda, API Gateway, etc<br/>• Performance, pricing, security]
-    Categorize --> Security[Security Alerts<br/>• CVEs for stack<br/>• CVSS, affected versions]
-    Categorize --> Corporate[Corporate Hims & Hers<br/>• Earnings, filings, M&A<br/>• Competitor moves]
-    Categorize --> DevEx[Developer Experience<br/>• DX tooling, frameworks<br/>• Productivity improvements]
-    Categorize --> Trends[Trend Watchlist<br/>• rising/stable/fading<br/>• Cross-source validation]
-
-    %% Final Output
-    TopSignals --> Report[ScanResult<br/>7 categories + raw_feed]
-    AITrends --> Report
-    AWSChanges --> Report
+    TopSignals --> Report[ScanResult<br/>8 categories + raw_feed]
+    TrendWatch --> Report
     Security --> Report
+    AWSChanges --> Report
+    AITrends --> Report
     Corporate --> Report
     DevEx --> Report
-    Trends --> Report
 
     Report --> Email[Send Email<br/>AWS SES<br/>HTML + Text]
-    Email --> S3Store[Save to S3<br/>• reports/date/report.html<br/>• reports/date/data.json<br/>• index.html]
+    Email --> S3Store[Save to S3<br/>• reports/date/report.html<br/>• reports/date/data.json<br/>• prompts.json]
 
     S3Store --> Done([Complete<br/>Report URL returned])
     EmptyReport --> Done
 
     %% Styling
-    classDef filterNode fill:#ff9999,stroke:#cc0000,stroke-width:2px
     classDef processNode fill:#99ccff,stroke:#0066cc,stroke-width:2px
     classDef outputNode fill:#99ff99,stroke:#00cc00,stroke-width:2px
     classDef decisionNode fill:#ffcc99,stroke:#ff9900,stroke-width:2px
+    classDef aiNode fill:#cc99ff,stroke:#9900cc,stroke-width:2px
 
-    class TimeFilter,URLCanon,DomainCheck,HTTPCheck,Dedup filterNode
-    class RSS,RSSParse,BuildQuery,PerplexAPI,ParseCite,BuildInput,ChatGPT,Categorize processNode
-    class TopSignals,AITrends,AWSChanges,Security,Corporate,DevEx,Trends,Report,Email,S3Store outputNode
-    class ParallelFetch,PerplexCheck,EmptyCheck decisionNode
+    class BuildPrompt,ParseJSON processNode
+    class TopSignals,TrendWatch,Security,AWSChanges,AITrends,Corporate,DevEx,Report,Email,S3Store outputNode
+    class ValidateResult decisionNode
+    class PerplexAPI aiNode
 ```
 
-### Key Filtering & Prioritization Mechanisms
+### Key Filtering & Prioritization Mechanisms (Built into Perplexity Prompt)
 
 | Stage | Filter/Mechanism | Purpose | Details |
 |-------|------------------|---------|---------|
-| **1. Temporal** | `lookback_hours` | Freshness | Default 24h, configurable via Lambda event |
-| **2. Volume Control** | Max items per source | Cost optimization | 20 items per RSS feed, 50 parsed max |
-| **3. URL Canonicalization** | Normalize URLs | Deduplication | HTTPS, remove tracking params, normalize paths |
-| **4. Domain Allowlist** | Trusted sources only | Quality control | Optional (disabled by default): AWS, HL7, FDA, MHRA, GitHub, etc. |
-| **5. HTTP Validation** | URL accessibility | Link integrity | Optional (disabled by default): HEAD/GET check, 10s timeout, 200-299 status |
-| **6. Deduplication** | By canonical URL | Avoid redundancy | Keep item with earlier published_at |
-| **7. Diversification** | Cross-category balance | Comprehensive coverage | ChatGPT instructed to populate ALL categories |
-| **8. Source Blacklist** | Noise filtering | Remove low-value sources | serverlessland contributors, youtube, tomsguide, status pages |
-| **9. Healthcare Cap** | 40% max combined | Prevent medical bias | Healthcare (AI+FHIR) ≤ 40% of total items |
-| **10. AWS Cap (top_signals)** | MAX 2 from aws.amazon.com | Prevent AWS flooding | Forces diversity in critical signals |
-| **11. Priority Order** | Topic-based ranking | Executive focus | AWS/DX first, then security, then healthcare |
-| **12. Severity Scoring** | High/Medium/Low | Impact assessment | High: compliance, breaking changes, exploits |
-| **11. Impact Tagging** | 6 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy |
-| **12. Category Limits** | Max 5 per category | Signal vs noise | Independent limits, not 5 total across all |
-| **13. URL Integrity** | Source validation | No hallucination | All URLs must exist in raw_feed_input |
-| **14. Empty Check** | Skip if no items | Cost optimization | Avoid ChatGPT call on empty input |
+| **1. Temporal** | `lookback_hours` | Freshness | AWS/Security: 24-48h, Others: up to 72h (configurable) |
+| **2. Source Priority** | Ordered source list | Quality control | AWS, Security, DX, Healthtech, Competitors, AI (in order) |
+| **3. Source Blacklist** | Noise filtering | Remove low-value sources | serverlessland contributors, youtube, tomsguide, status pages |
+| **4. Healthcare Cap** | 40% max combined | Prevent medical bias | Healthcare (AI+FHIR) ≤ 40% of total items |
+| **5. AWS Cap (top_signals)** | MAX 2 from aws.amazon.com | Prevent AWS flooding | Forces diversity in critical signals |
+| **6. Non-AWS Requirement** | ≥1 from DX or Security | Balanced signals | Ensures top_signals includes non-AWS perspectives |
+| **7. Category Limits** | Max 5 per category | Signal vs noise | Independent limits for each section |
+| **8. AI Trends Cap** | 0-2 items unless dated | Platform focus | Only platform-impacting or regulatory with dates |
+| **9. Severity Scoring** | High/Medium/Low | Impact assessment | High: compliance, breaking changes, exploits |
+| **10. Impact Tagging** | 8 impact categories | Business context | Regulatory, Platform, Security, DX, Cost, Org/Strategy, Healthtech, AI |
+| **11. Title Normalization** | Consistent format | Clarity | CVE format, version-only releases standardized |
+| **12. why_it_matters Template** | Required format | Actionable insight | "{who} because {what} which {so_what}" |
+| **13. Ranking Signals** | Additive scoring | Prioritization | +3 for dated changes, +2 for primary sources, +1 for cost/perf |
+| **14. Placement Rules** | Category routing | Proper organization | Routine AWS → aws_platform_changes, not top_signals |
+| **15. Validation Guards** | Post-processing checks | Data quality | No empty why_it_matters, all URLs must be real, CVE fields required |
 
-### Data Flow Example (48 Items → Final Report)
+### Data Flow Example (Perplexity-Only Mode)
 
 ```
 INPUT:
-  RSS Feeds: 45 items (after time filtering from 200+ parsed)
-  Perplexity: 8 items (citations from combined query)
-  Total: 53 items
+  Comprehensive prompt sent to Perplexity (sonar-pro)
+  - Lookback: 24 hours (AWS/Security) to 72 hours (others)
+  - 9 source categories specified
+  - Diversity rules embedded in prompt
+  - Complete JSON schema requested
 
-FILTERING:
-  ✓ Domain allowlist: 53 → 50 (3 unknown domains dropped)
-  ✓ HTTP validation: 50 → 48 (2 broken links dropped)
-  ✓ Deduplication: 48 → 45 (3 URL duplicates merged)
+PERPLEXITY RESEARCH & CATEGORIZATION:
+  Perplexity researches from primary sources:
+  1. AWS What's New, AWS blogs, ALAS
+  2. NVD, CISA KEV, GitHub Advisory DB
+  3. Backstage, InfoQ, The New Stack, CNCF
+  4. MHRA, EMA, FDA, NHS England, HL7
+  5. Investors.hims.com, SEC filings, UK competitors
+  6. OpenAI/Anthropic blogs, Bedrock, NEJM AI
 
-CHATGPT CATEGORIZATION (45 unique items):
-  Priority Order Applied:
-  1. AWS/Serverless: 5 items selected first
-  2. Developer Experience: 5 items selected second
-  3. Security: 5 items selected third
-  4. AI (platform-impacting): 3 items selected
-  5. FHIR/Interop: 2 items selected
-  6. Corporate: 2 items selected
+  Perplexity applies built-in filters:
+  - AWS Cap Check: MAX 2 in top_signals from aws.amazon.com ✓
+  - Healthcare Cap Check: ≤40% combined (AI + FHIR) ✓
+  - Non-AWS Requirement: ≥1 from DX or Security in top_signals ✓
+  - Category Limits: MAX 5 items per category ✓
+  - AI Trends: 0-2 items (platform-impacting only) ✓
 
-  Healthcare Cap Check: (3 AI + 2 FHIR) / 22 total = 23% ✓ (under 40% limit)
-
-  Final Distribution:
+  Returns structured JSON directly:
   → Top Signals: 5 items
-     • AWS x2 (MAX 2 from aws.amazon.com - pricing change, security bulletin)
-     • Security x2 (exploited CVE, AWS ALAS with fix)
+     • AWS x2 (Lambda pricing change, ALAS security bulletin)
+     • Security x2 (npm CVE-2025-1234, Go stdlib CVE-2025-5678)
      • DX x1 (Backstage golden paths - ensures ≥1 non-AWS)
-  → AWS Platform Changes: 5 items (routine What's New items moved here)
-     • Lambda runtime update, EventBridge schema, DynamoDB pricing, IAM policy update, CloudWatch metric
-  → Developer Experience: 5 items (≥1 non-AWS required)
-     • Backstage plugin, InfoQ platform article, DORA metrics study, CNCF pattern, NestJS release
-  → Security Alerts: 5 items (normalized titles with CVSS)
+  → Trend Watchlist: 3 items (cross-source emerging patterns)
+  → Security Alerts: 5 items (normalized with CVSS)
      • "npm: CVE-2025-1234 prototype pollution allows RCE (CVSS 9.1)"
      • "Go stdlib: CVE-2025-5678 path traversal (CVSS 7.5)"
-  → AI Trends: 2 items (0-2 unless dated obligation)
+  → AWS Platform Changes: 5 items (routine What's New)
+     • Lambda runtime update, DynamoDB pricing, IAM policy, CloudWatch metric
+  → AI Trends: 2 items
      • AWS Bedrock cost optimization, EU AI Act deadline 2025-08-02
-  → Trend Watchlist: 5 items (cross-category emerging patterns)
-  → Corporate Hims & Hers: 2 items (material only)
+  → Corporate Competitors: 3 items
+     • Hims & Hers Q4 earnings, Doctolib Series F funding, Zava UK expansion
+  → Developer Experience: 5 items (≥1 non-AWS)
+     • Backstage plugin, InfoQ article, DORA metrics, CNCF pattern, NestJS release
+  → Raw Feed: 28 items (all sources used in categorization)
 
 OUTPUT:
   Email: HTML report sent via SES
-  S3: reports/2025-10-20/report.html + data.json + prompts.json
-  Total items in report: 30 (from 45 analyzed, from 53 collected)
-  Healthcare items: 5 (17% of total - well under 40% cap)
+  S3: reports/2025-10-22/report.html + data.json + prompts.json
+  Total items in report: 28 across 8 categories
+  Healthcare items: 4 (14% of total - well under 40% cap)
+  Execution time: ~15-30 seconds (vs 90-120s for old RSS + ChatGPT)
 ```
 
 ### Code Architecture
@@ -177,26 +153,27 @@ Built following clean architecture principles with clear separation of concerns:
 
 ```
 src/
-├── domain/           # Domain models and interfaces
+├── domain/           # Domain models and interfaces (ScanResult, TopSignal, etc.)
 ├── application/      # Business logic (ScanService, ResearchService)
-├── infrastructure/   # External integrations (Email, HTTP, Perplexity, OpenAI)
-├── command/lambda/   # Lambda handlers
-└── utils/            # Shared utilities (logger, config loader)
+├── infrastructure/   # External integrations (Email, Perplexity, S3 Storage)
+├── command/lambda/   # Lambda handlers (daily-scan.ts)
+└── utils/            # Shared utilities (logger, config loader, url-validator)
 ```
 
 ## Features
 
-- **Hybrid Data Collection**: Combines RSS feeds (41+ sources) with Perplexity web research for maximum coverage
-- **YAML-based configuration**: Easily maintain sources and topics without code changes
+- **Perplexity-Only Architecture**: Single API call to sonar-pro returns complete structured report
+- **YAML-based configuration**: Easily maintain settings without code changes
 - **Scheduled execution**: Daily scans at configurable times via EventBridge
 - **Email delivery**: HTML and text email reports via Amazon SES
 - **Web Archive**: All reports stored in public S3 bucket (HTML + JSON) with direct browser access
-- **AI-Powered Analysis**: ChatGPT (gpt-4o-mini) categorizes and summarizes updates
-- **Web Research**: Perplexity API covers topics without RSS feeds (regulatory updates, competitive intelligence)
-- **URL Validation**: HTTP HEAD checks ensure all links are working before analysis
+- **AI-Powered Research**: Perplexity (sonar-pro) researches from primary sources and applies filters
+- **Comprehensive Coverage**: 9 source categories (AWS, Security, DX, Healthtech, Competitors, AI, FinOps, Leadership, Emerging Tech)
+- **Built-in Diversity**: Embedded rules prevent AWS/healthcare dominance
 - **Severity classification**: Automatic high/medium/low severity mapping
-- **Impact categorization**: Regulatory, Platform, Security, DX, Cost, Org/Strategy
+- **Impact categorization**: Regulatory, Platform, Security, DX, Cost, Org/Strategy, Healthtech, AI (8 categories)
 - **Category Limits**: Maximum 5 items per category for focused, actionable insights
+- **Fast Execution**: ~15-30 seconds (vs 90-120s for old RSS + ChatGPT pipeline)
 
 ## Prerequisites
 
@@ -204,8 +181,7 @@ src/
 - AWS SAM CLI installed
 - Node.js 18.x or later
 - Verified email addresses in Amazon SES (for sending/receiving emails)
-- OpenAI API key (for ChatGPT analysis)
-- Perplexity API key (optional, for web research - get it from https://www.perplexity.ai/settings/api)
+- Perplexity API key (**required** - get it from https://www.perplexity.ai/settings/api)
 
 ## Configuration
 
@@ -340,9 +316,8 @@ You'll be prompted for:
 - AWS Region (e.g., `eu-west-2`)
 - ToEmailAddress (email to receive reports)
 - FromEmailAddress (verified SES email to send from)
-- OpenAIApiKey (your OpenAI API key - will be hidden)
-- PerplexityApiKey (optional, for web research)
-- EnableUrlValidation (default: `false` - disable domain allowlist and HTTP validation for faster processing)
+- PerplexityApiKey (your Perplexity API key - will be hidden)
+- EnableUrlValidation (default: `false` - optional domain allowlist and HTTP validation)
 
 3. For subsequent deployments:
 
@@ -358,7 +333,6 @@ sam deploy \
   --parameter-overrides \
     ToEmailAddress=recipient@example.com \
     FromEmailAddress=sender@example.com \
-    OpenAIApiKey=sk-your-api-key-here \
     PerplexityApiKey=pplx-your-api-key-here \
     EnableUrlValidation=false \
   --capabilities CAPABILITY_IAM \
@@ -589,39 +563,49 @@ The function includes AWS X-Ray tracing. View traces in the AWS X-Ray console.
 
 ## Cost Estimation
 
-Estimated monthly costs (as of 2025):
+Estimated monthly costs (as of 2025-10):
 
-- Lambda: $0.20 (daily 15-min execution at 512MB)
+- Lambda: $0.10 (daily 30-second execution at 512MB - much faster than old architecture)
 - SES: $0.10 (30 emails/month)
 - S3 Storage: $0.05 (1-2GB reports storage)
 - S3 Requests: $0.01 (PUT operations for daily uploads)
-- CloudWatch Logs: $0.50 (log storage and insights)
+- CloudWatch Logs: $0.20 (minimal log storage)
 - EventBridge: Free (included in AWS Free Tier)
-- **OpenAI API (GPT-4o-mini)**: ~$0.30-0.60/month (for analysis)
-- **Perplexity API (sonar)**: ~$1.50-3.00/month (1 search per day)
+- **Perplexity API (sonar-pro)**: ~$1.98/month (1 comprehensive search per day)
+  - Input: ~2,500 tokens/day × 30 days = 75K tokens/month × $3/1M = $0.23
+  - Output: ~2,900 tokens/day × 30 days = 87K tokens/month × $15/1M = $1.31
+  - Citations: ~400 tokens/day × 30 days = 12K tokens/month × $3/1M = $0.04
+  - Buffer for variable content: +$0.40
+  - **Total Perplexity**: ~$1.98/month
 
-**Total**: ~$2.66-4.46/month
+**Total**: ~$2.44/month
+
+**Comparison with previous architecture:**
+- Old (RSS + ChatGPT): ~$2.66-4.46/month, 90-120s execution time
+- New (Perplexity-only): ~$2.44/month, 15-30s execution time
+- **Savings**: ~$0.22-2.02/month (8-45% cheaper) + 75% faster
 
 Note:
-- Perplexity is optional - system works with RSS-only mode
-- Using GPT-4o instead of GPT-4o-mini would add ~$8-15/month
-- Costs scale with the volume of content analyzed
+- sonar-pro costs ~16.5× more than sonar per token but provides much higher quality
+- Total cost still very affordable (<$30/year)
+- Execution time reduction saves Lambda costs
+- Alternative: Switch to sonar model for ~$0.12/month (vs $1.98) if budget is critical
 
 ## Future Enhancements
 
-- [x] ~~Implement AI/LLM integration for content analysis using OpenAI ChatGPT API~~ ✅
+- [x] ~~Implement AI/LLM integration for content analysis~~ ✅ (Perplexity sonar-pro)
 - [x] ~~Web archive with S3 storage for historical reports~~ ✅
 - [x] ~~Category-based organization with top 5 items per section~~ ✅
-- [ ] Add support for all source types (RSS, GitHub, NVD, CISA)
-- [ ] Implement caching to avoid re-fetching unchanged content
+- [x] ~~Migrate from RSS + ChatGPT to Perplexity-only for faster, simpler execution~~ ✅
+- [ ] Implement retry logic for Perplexity API rate limits
 - [ ] Add webhook support for real-time alerts
 - [ ] Create interactive dashboard for historical scan results (using S3 JSON data)
 - [ ] Implement trend analysis across multiple scans
 - [ ] Add Slack/Teams integration as alternative to email
-- [ ] Switch to GPT-4o for higher quality analysis when budget allows
-- [ ] Implement retry logic for OpenAI API rate limits
 - [ ] Add search functionality to web archive
 - [ ] Export reports to PDF format
+- [ ] Experiment with claude-3-5-sonnet-latest for research (if Perplexity quality degrades)
+- [ ] Add configurable prompt templates in YAML (vs hardcoded in ResearchService)
 
 ## License
 

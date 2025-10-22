@@ -1,25 +1,21 @@
 import { ScanService } from '@/application/scan-service';
-import { RawFeed, ScanResult } from '@/domain/scan-result';
-import { Source, SourceConfiguration } from '@/domain/source-config';
-import { ReportGenerationInput, ReportGenerator } from '@/infrastructure/report-generator';
-import { SourceFetcher } from '@/infrastructure/source-fetcher';
+import { ResearchService, ResearchResult } from '@/application/research-service';
+import { ScanResult } from '@/domain/scan-result';
+import { SourceConfiguration } from '@/domain/source-config';
 
-class StubFetcher implements SourceFetcher {
-    constructor(private readonly feedsBySource: Record<string, RawFeed[]>) {}
+class StubResearchService {
+    public lastDate: string | null = null;
+    public lastTimezone: string | null = null;
 
-    async fetchSource(source: Source, _lookbackHours?: number): Promise<RawFeed[]> {
-        return this.feedsBySource[source.name] || [];
-    }
-}
+    constructor(private readonly result: Partial<ScanResult>) {}
 
-class StubReportGenerator implements ReportGenerator {
-    public lastInput: ReportGenerationInput | null = null;
-
-    constructor(private readonly result: ScanResult) {}
-
-    async generateReport(input: ReportGenerationInput): Promise<ScanResult> {
-        this.lastInput = input;
-        return this.result;
+    async performResearch(date: string, timezone: string): Promise<ResearchResult> {
+        this.lastDate = date;
+        this.lastTimezone = timezone;
+        return {
+            report: this.result,
+            query: 'stub query',
+        };
     }
 }
 
@@ -43,127 +39,71 @@ const baseConfig: SourceConfiguration = {
     impact_keywords: {},
 };
 
-const isoNow = new Date().toISOString();
-
-describe('ScanService', () => {
-    it('passes aggregated feed metadata to the report generator', async () => {
-        const config: SourceConfiguration = {
-            ...baseConfig,
-            topics: [
-                {
-                    name: 'AWS Platform',
-                    category: 'aws_platform',
-                    priority: 1,
-                    sources: [
-                        {
-                            name: 'AWS Blog',
-                            url: 'https://aws.example.com',
-                            type: 'rss',
-                            keywords: [],
-                        },
-                    ],
-                },
-            ],
-        };
-
-        const feeds: Record<string, RawFeed[]> = {
-            'AWS Blog': [
-                {
-                    title: 'AWS launches new compute option',
-                    source: 'AWS Blog',
-                    source_url: 'https://aws.example.com/compute',
-                    published_at: isoNow,
-                },
-            ],
-        };
-
-        const expectedResult: ScanResult = {
-            date: '2025-01-01',
-            timezone: 'Europe/London',
+describe('ScanService (Perplexity-Only)', () => {
+    it('calls research service with correct date and timezone', async () => {
+        const perplexityReport: Partial<ScanResult> = {
             top_signals: [],
             trend_watchlist: [],
             security_alerts: [],
             aws_platform_changes: [],
             ai_trends: [],
-            corporate_hims_hers: [],
-            developer_experience: [],
-            raw_feed: [
-                {
-                    title: 'Generator override',
-                    source: 'LLM',
-                    source_url: 'https://example.com',
-                    published_at: isoNow,
-                },
-            ],
-        };
-
-        const fetcher = new StubFetcher(feeds);
-        const generator = new StubReportGenerator(expectedResult);
-        const service = new ScanService(config, fetcher, generator);
-
-        const result = await service.performScan();
-
-        expect(generator.lastInput).not.toBeNull();
-        expect(generator.lastInput?.items).toHaveLength(1);
-        expect(generator.lastInput?.items[0]).toMatchObject({
-            topic: 'AWS Platform',
-            category: 'aws_platform',
-            source: 'AWS Blog',
-        });
-
-        expect(result).toEqual(expectedResult);
-    });
-
-    it('returns generator output even when raw_feed is empty', async () => {
-        const config: SourceConfiguration = {
-            ...baseConfig,
-            topics: [
-                {
-                    name: 'Security',
-                    category: 'security',
-                    priority: 1,
-                    sources: [
-                        {
-                            name: 'Security RSS',
-                            url: 'https://security.example.com',
-                            type: 'rss',
-                            keywords: [],
-                        },
-                    ],
-                },
-            ],
-        };
-
-        const feeds: Record<string, RawFeed[]> = {
-            'Security RSS': [
-                {
-                    title: 'New vulnerability discovered',
-                    source: 'Security RSS',
-                    source_url: 'https://security.example.com/vuln',
-                    published_at: isoNow,
-                },
-            ],
-        };
-
-        const generatorResult: ScanResult = {
-            date: '2025-02-02',
-            timezone: 'Europe/London',
-            top_signals: [],
-            trend_watchlist: [],
-            security_alerts: [],
-            aws_platform_changes: [],
-            ai_trends: [],
-            corporate_hims_hers: [],
+            corporate_competitors: [],
             developer_experience: [],
             raw_feed: [],
         };
 
-        const fetcher = new StubFetcher(feeds);
-        const generator = new StubReportGenerator(generatorResult);
-        const service = new ScanService(config, fetcher, generator);
+        const researchService = new StubResearchService(perplexityReport) as unknown as ResearchService;
+        const service = new ScanService(baseConfig, researchService);
+
+        await service.performScan();
+
+        const stub = researchService as unknown as StubResearchService;
+        expect(stub.lastDate).not.toBeNull();
+        expect(stub.lastTimezone).toBe('Europe/London');
+    });
+
+    it('returns complete ScanResult with all required fields', async () => {
+        const perplexityReport: Partial<ScanResult> = {
+            top_signals: [
+                {
+                    title: 'Test Signal',
+                    why_it_matters: 'Test matters because test',
+                    impact: ['Platform'],
+                    severity: 'high',
+                    source_url: 'https://example.com',
+                    published_at: '2025-10-22',
+                    notes_for_actions: [],
+                },
+            ],
+            security_alerts: [],
+            aws_platform_changes: [],
+        };
+
+        const researchService = new StubResearchService(perplexityReport) as unknown as ResearchService;
+        const service = new ScanService(baseConfig, researchService);
 
         const result = await service.performScan();
 
-        expect(result.raw_feed).toEqual([]);
+        expect(result.scanResult.date).toBeDefined();
+        expect(result.scanResult.timezone).toBe('Europe/London');
+        expect(result.scanResult.top_signals).toHaveLength(1);
+        expect(result.scanResult.security_alerts).toEqual([]);
+        expect(result.scanResult.corporate_competitors).toEqual([]);
+        expect(result.prompts.perplexity).toBeDefined();
+    });
+
+    it('handles empty Perplexity response', async () => {
+        const researchService = new StubResearchService({}) as unknown as ResearchService;
+        const service = new ScanService(baseConfig, researchService);
+
+        const result = await service.performScan();
+
+        expect(result.scanResult.top_signals).toEqual([]);
+        expect(result.scanResult.security_alerts).toEqual([]);
+        expect(result.scanResult.aws_platform_changes).toEqual([]);
+        expect(result.scanResult.ai_trends).toEqual([]);
+        expect(result.scanResult.corporate_competitors).toEqual([]);
+        expect(result.scanResult.developer_experience).toEqual([]);
+        expect(result.scanResult.raw_feed).toEqual([]);
     });
 });

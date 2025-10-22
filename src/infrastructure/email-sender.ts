@@ -224,10 +224,10 @@ export class SESEmailSender implements EmailSender {
             });
         }
 
-        // Corporate - Hims & Hers
-        if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
-            html += `<h2 style="color: #2980b9; font-size: 20px; margin: 32px 0 16px 0;">Corporate - Hims & Hers (${scanResult.corporate_hims_hers.length})</h2>`;
-            scanResult.corporate_hims_hers.forEach((item) => {
+        // Corporate Competitors
+        if (scanResult.corporate_competitors && scanResult.corporate_competitors.length > 0) {
+            html += `<h2 style="color: #2980b9; font-size: 20px; margin: 32px 0 16px 0;">Corporate Competitors (${scanResult.corporate_competitors.length})</h2>`;
+            scanResult.corporate_competitors.forEach((item) => {
                 const type = Array.isArray(item.type) ? item.type[0] : item.type;
                 html += `
                 <div style="margin-bottom: 16px; padding: 16px; background-color: #f0f7fb; border-left: 4px solid #2980b9; border-radius: 4px;">
@@ -333,10 +333,10 @@ ${idx + 1}. ${signal.title}
                 .join('\n');
         }
 
-        // Corporate - Hims & Hers
-        if (scanResult.corporate_hims_hers && scanResult.corporate_hims_hers.length > 0) {
-            otherSectionsText += `\n\nCORPORATE - HIMS & HERS (${scanResult.corporate_hims_hers.length})\n`;
-            otherSectionsText += scanResult.corporate_hims_hers
+        // Corporate Competitors
+        if (scanResult.corporate_competitors && scanResult.corporate_competitors.length > 0) {
+            otherSectionsText += `\n\nCORPORATE COMPETITORS (${scanResult.corporate_competitors.length})\n`;
+            otherSectionsText += scanResult.corporate_competitors
                 .map((item) => {
                     const type = Array.isArray(item.type) ? item.type[0] : item.type;
                     return `

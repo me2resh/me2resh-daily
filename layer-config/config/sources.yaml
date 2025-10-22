@@ -8,35 +8,22 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# GLOBAL CONFIGURATION
+# GLOBAL CONFIGURATION (Flat structure for compatibility)
 # ----------------------------------------------------------------------------
-config:
-  email:
-    to_address: "${TO_EMAIL_ADDRESS}"
-    from_address: "${FROM_EMAIL_ADDRESS}"
-    subject_prefix: "Me2resh Daily"
+email:
+  to_address: "${TO_EMAIL_ADDRESS}"
+  from_address: "${FROM_EMAIL_ADDRESS}"
+  subject_prefix: "Me2resh Daily"
 
-  scan:
-    timezone: "Europe/London"
-    scan_time: "05:00"
-    lookback_hours: 24
-    max_items_per_source: 20
+scan_config:
+  timezone: "Europe/London"
+  scan_time: "05:00"
+  lookback_hours: 24
+  max_items_per_source: 20
+  enable_perplexity_research: true
 
-  diversity:
-    max_items_per_category: 5
-    healthcare_combined_cap: 0.4  # Max 40% from healthcare/AI/FHIR combined
-    rebalance_on: true
-    primary_sources_first: true
-    drop_undated_commentary: true
-
-    # Ultra-strict diversity for top_signals
-    top_signals_max_aws: 1  # Maximum AWS items in top_signals
-    top_signals_min_non_aws: 2  # Minimum non-AWS items required
-
-  perplexity:
-    enabled: true
-    model: "sonar"
-    temperature: 0.2
+# Legacy topics array (keep for backwards compatibility)
+topics: []
 
 # ----------------------------------------------------------------------------
 # RESEARCH CATEGORIES

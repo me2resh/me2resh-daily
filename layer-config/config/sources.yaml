@@ -232,8 +232,8 @@ categories:
     search_strategy:
       order: 5  # Search LAST (after all non-AWS categories)
       queries:
-        - 'site:aws.amazon.com "What\'s New" OR "pricing" OR "security bulletin"'
-        - 'site:aws.amazon.com/blogs/compute OR site:aws.amazon.com/blogs/architecture'
+        - "site:aws.amazon.com What's New OR pricing OR security bulletin"
+        - "site:aws.amazon.com/blogs/compute OR site:aws.amazon.com/blogs/architecture"
       time_window: "24-48h"  # Narrower window
       required_for_diversity: false  # Not required
       max_in_top_signals: 1  # STRICT CAP

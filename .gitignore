@@ -24,3 +24,7 @@ coverage/
 
 # Build artifacts
 *.zip
+
+# Test files with sensitive data
+test-perplexity.sh
+perplexity-test-output*.json

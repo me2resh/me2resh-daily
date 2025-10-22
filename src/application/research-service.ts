@@ -272,7 +272,7 @@ STEP 4 - VALIDATE WHY_IT_MATTERS:
   - Reject/omit any item failing this check
 
 STEP 5 - NORMALIZE VERSION-ONLY TITLES:
-  - Rewrite any titles matching /^v?\d+(\.\d+)*$/ per rules above
+  - Rewrite any titles matching /^v?\\d+(\\.\\d+)*$/ per rules above
 
 STEP 6 - FINAL DIVERSITY ASSERTION:
   - Assert top_signals.length is 3-5 items

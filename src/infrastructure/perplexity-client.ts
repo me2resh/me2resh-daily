@@ -140,9 +140,11 @@ export class PerplexityClient {
                         },
                     ],
                     temperature: 0.1, // Lower for factual accuracy
-                    max_tokens: 6000, // Increased for full JSON response
+                    max_tokens: 8000, // Increased for full JSON response with multiple categories
                     return_citations: true,
                     return_related_questions: false,
+                    search_recency_filter: 'week', // Search last 7 days for better content discovery
+                    search_domain_filter: [], // Allow all domains (no restrictions)
                 }),
             });
 

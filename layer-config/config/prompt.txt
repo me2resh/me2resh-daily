@@ -56,8 +56,10 @@ TARGET: 3-4 items total, with ONLY 1 AWS item maximum
 ENFORCEMENT RULES:
 1. Even if AWS has major outage: MAX 1 AWS item in top_signals
 2. Move ALL other AWS items to aws_platform_changes (even if high-impact)
-3. If you cannot find non-AWS items: Search harder (expand time window to 72h)
-4. REJECT the entire result if top_signals has >1 AWS item
+3. If you cannot find non-AWS items in 24h: EXPAND search to 72h window and search again
+4. If STILL no non-AWS items found after 72h search: Return EMPTY top_signals [] rather than AWS-only
+5. REJECT the entire result if top_signals has >1 AWS item
+6. REJECT top_signals if it contains ONLY AWS items with ZERO non-AWS items
 
 OTHER CAPS:
 - Each populated category: MAX 5 items
@@ -264,9 +266,11 @@ MANDATORY VERIFICATION (check ALL of these):
 5. ✓ All why_it_matters fields are non-empty and >10 characters
 6. ✓ ALL excess AWS items moved to aws_platform_changes
 7. ✓ Performed searches across ALL required domains (not just AWS)
+8. ✓ If top_signals has ONLY AWS items: DELETE top_signals and return empty array []
 
 IF ANY CHECK FAILS: Re-run POST-PROCESSING GUARDS until ALL checks pass
 IF you have 2 AWS items in top_signals: MOVE 1 to aws_platform_changes NOW
+IF top_signals contains ONLY AWS with NO non-AWS: RETURN top_signals: [] (empty)
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.

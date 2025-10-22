@@ -74,9 +74,33 @@ Timezone: ${timezone}
 5. Search BROADLY across all domains - not just AWS
 6. Before returning JSON: VERIFY every source_url exists in your citations
 
+MANDATORY SEARCH STRATEGY (Execute in this order):
+You MUST perform searches across ALL these domains, not just AWS:
+
+STEP 1 - Security Search (REQUIRED):
+  Search: "CVE" site:nvd.nist.gov OR site:github.com/advisories OR "npm vulnerability" OR "golang security"
+  Look for: CVEs in last 48h with CVSS scores, especially npm/golang/php
+
+STEP 2 - Developer Experience Search (REQUIRED):
+  Search: "Backstage" OR "CNCF" site:backstage.io OR site:cncf.io OR site:infoq.com OR site:thenewstack.io
+  Look for: Backstage releases, CNCF project updates, platform engineering patterns
+
+STEP 3 - Healthtech/Regulatory Search (REQUIRED):
+  Search: "FHIR" OR "NHS" OR "MHRA" site:digital.nhs.uk OR site:hl7.org OR site:fda.gov OR "EU AI Act"
+  Look for: FHIR updates, NHS API changes, regulatory deadlines with dates
+
+STEP 4 - Competitor Search (OPTIONAL):
+  Search: "Hims" OR "Doctolib" OR "Teladoc" site:investors.hims.com OR "healthtech earnings"
+  Look for: Earnings, funding, partnerships, product launches
+
+STEP 5 - AWS Search (LAST PRIORITY):
+  Search: AWS site:aws.amazon.com "What's New" OR "pricing" OR "security bulletin"
+  Look for: Only high-impact changes (pricing, security, outages)
+
 TIME WINDOWS (apply different lookback windows by category):
-- AWS platform changes, security vulnerabilities: 24-48 hours
-- Developer experience, healthtech regulation, AI trends: up to 72 hours (more supply on quiet news days)
+- Security vulnerabilities: 24-72 hours (broader window to ensure findings)
+- Developer experience, healthtech regulation: 48-72 hours (more supply on quiet news days)
+- AWS platform changes: 24-48 hours (only recent critical items)
 
 SOURCES (in priority order):
 1. AWS: What's New, AWS blogs (Compute, Architecture, Security), ALAS, Well-Architected, serverlessland.com
@@ -106,14 +130,26 @@ NOISE BLACKLIST (exclude these patterns):
 
 DIVERSITY & CAPS (MANDATORY ENFORCEMENT):
 *** CRITICAL: TOP SIGNALS DIVERSITY RULES (HIGHEST PRIORITY) ***
-1. AWS DOMAIN CAP: Absolute MAX 2 items from aws.amazon.com domains in top_signals
-2. NON-AWS REQUIREMENT: If ANY non-AWS content exists (DX, Security, Healthtech, Competitors), you MUST include at least 1 non-AWS item in top_signals
-3. PREFERRED MIX: Aim for 3-5 items total in top_signals with this balance:
-   - MAX 2 from AWS (aws.amazon.com, amazonaws.com domains)
-   - MIN 1 from security_alerts (CVEs, vulnerabilities) IF available
-   - MIN 1 from developer_experience (Backstage, CNCF, InfoQ) IF available
-   - Remaining slots: highest-ranking items from any category
-4. ENFORCEMENT: If you have >2 AWS items in top_signals, you MUST move lower-ranked AWS items to aws_platform_changes
+
+⚠️ STRICT DIVERSITY QUOTA (NON-NEGOTIABLE) ⚠️
+top_signals MUST follow this EXACT distribution:
+
+ALLOWED IN top_signals:
+- MAX 1 AWS item (reduced from 2 due to AWS news saturation)
+- MINIMUM 2-3 non-AWS items from different domains:
+  * 1 Security item (CVE with CVSS, from nvd.nist.gov/github.com/advisories)
+  * 1 DX item (Backstage/CNCF/InfoQ release or pattern)
+  * 1 Healthtech/Regulatory item (FHIR/NHS/MHRA/FDA with date)
+  OR
+  * 1 Competitor item (Hims/Doctolib/Teladoc earnings/news)
+
+TARGET: 3-4 items total, with ONLY 1 AWS item maximum
+
+ENFORCEMENT RULES:
+1. Even if AWS has major outage: MAX 1 AWS item in top_signals
+2. Move ALL other AWS items to aws_platform_changes (even if high-impact)
+3. If you cannot find non-AWS items: Search harder (expand time window to 72h)
+4. REJECT the entire result if top_signals has >1 AWS item
 
 OTHER CAPS:
 - Each populated category: MAX 5 items
@@ -260,17 +296,19 @@ STEP 2 - COUNT AWS ITEMS:
   - Count items where source_url contains "aws.amazon.com" OR "amazonaws.com"
   - Store count as aws_count
 
-STEP 3 - ENFORCE AWS CAP (IF aws_count > 2):
+STEP 3 - ENFORCE STRICT AWS CAP (IF aws_count > 1):
   - Rank AWS items by impact/severity
-  - Keep the TOP 2 highest-impact AWS items in top_signals
-  - Move ALL other AWS items (aws_count - 2) to aws_platform_changes
-  - Note: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity"
+  - Keep ONLY THE TOP 1 highest-impact AWS item in top_signals
+  - Move ALL other AWS items (aws_count - 1) to aws_platform_changes
+  - Note: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity (STRICT 1-item cap)"
 
-STEP 4 - ENFORCE NON-AWS REQUIREMENT:
+STEP 4 - ENFORCE NON-AWS REQUIREMENT (MANDATORY):
   - Count non-AWS items in top_signals (items where source_url does NOT contain aws.amazon.com/amazonaws.com)
-  - IF non_aws_count === 0 AND (security_alerts OR developer_experience has items):
-    - Promote 1 high-ranked item from security_alerts or developer_experience to top_signals
-  - Target: 3-5 items total with MAX 2 AWS, MIN 1 non-AWS (when non-AWS content exists)
+  - IF non_aws_count < 2:
+    - REQUIRED: Add items from security_alerts, developer_experience, or ai_trends
+    - MINIMUM: 2 non-AWS items (3 preferred)
+    - Search with expanded 72h window if needed
+  - Target: 3-4 items total with MAX 1 AWS, MIN 2-3 non-AWS
 
 STEP 5 - VALIDATE WHY_IT_MATTERS:
   - For each item in ALL categories: Assert why_it_matters is non-empty, >10 chars
@@ -312,13 +350,15 @@ EXAMPLE OF COMPLIANT top_signals (showing diversity):
 
 MANDATORY VERIFICATION (check ALL of these):
 1. ✓ EVERY source_url appears in your citations/search_results - NO fake URLs
-2. ✓ top_signals has MAX 2 AWS items (aws.amazon.com/amazonaws.com domains)
-3. ✓ top_signals has MIN 1 non-AWS item (if non-AWS content was found)
-4. ✓ top_signals has 3-5 items total with diverse sources
+2. ✓ top_signals has MAX 1 AWS item (STRICT - reduced cap due to AWS saturation)
+3. ✓ top_signals has MIN 2-3 non-AWS items from different domains
+4. ✓ top_signals has 3-4 items total with DIVERSE sources (Security, DX, Healthtech, Competitors)
 5. ✓ All why_it_matters fields are non-empty and >10 characters
-6. ✓ Excess AWS items moved to aws_platform_changes
+6. ✓ ALL excess AWS items moved to aws_platform_changes
+7. ✓ Performed searches across ALL required domains (not just AWS)
 
 IF ANY CHECK FAILS: Re-run POST-PROCESSING GUARDS until ALL checks pass
+IF you have 2 AWS items in top_signals: MOVE 1 to aws_platform_changes NOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.`;

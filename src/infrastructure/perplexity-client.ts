@@ -143,7 +143,7 @@ export class PerplexityClient {
                     max_tokens: 8000, // Increased for full JSON response with multiple categories
                     return_citations: true,
                     return_related_questions: false,
-                    search_recency_filter: 'week', // Search last 7 days for better content discovery
+                    search_recency_filter: 'day', // Search last 24h to match lookback_hours and prevent duplicates
                     search_domain_filter: [], // Allow all domains (no restrictions)
                 }),
             });

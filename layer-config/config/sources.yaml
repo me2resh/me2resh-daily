@@ -18,7 +18,7 @@ email:
 scan_config:
   timezone: "Europe/London"
   scan_time: "05:00"
-  lookback_hours: 72  # Increased to 72h to ensure finding non-AWS content
+  lookback_hours: 24  # Daily scan: 24h for fresh daily content
   max_items_per_source: 20
   enable_perplexity_research: true
 

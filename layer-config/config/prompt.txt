@@ -18,10 +18,10 @@ You MUST perform searches across ALL these domains, not just AWS:
 
 {search_strategy}
 
-TIME WINDOWS (apply different lookback windows by category):
-- Security vulnerabilities: 24-72 hours (broader window to ensure findings)
-- Developer experience, healthtech regulation: 48-72 hours (more supply on quiet news days)
-- AWS platform changes: 24-48 hours (only recent critical items)
+TIME WINDOWS (STRICT - NO EXCEPTIONS):
+- ALL categories: EXACTLY {lookback_hours} hours - no broader windows allowed
+- REJECT any item with published_at older than {lookback_hours} hours from current date
+- If no items found in {lookback_hours} window: return empty arrays (DO NOT expand window)
 
 SOURCES (in priority order):
 {sources_list}
@@ -191,6 +191,11 @@ VALIDATION RULES (ENFORCE BEFORE RETURNING JSON):
    c. If non-AWS items available AND top_signals has 0 non-AWS items: Add at least 1 from security_alerts or developer_experience
    d. Target: 3-5 total items with MAX 2 AWS, MIN 1 non-AWS
 8. Healthcare (AI + FHIR): ≤ 40% of total items
+9. *** TIME WINDOW CHECK (CRITICAL - NO EXCEPTIONS) ***:
+   a. Calculate cutoff date: current date minus {lookback_hours} hours
+   b. For EVERY item in ALL categories: verify published_at is AFTER cutoff date
+   c. DELETE any item with published_at older than {lookback_hours} hours
+   d. This rule overrides ALL other rules - old items must be removed even if high-quality
 
 POST-PROCESSING GUARDS (MANDATORY - RUN IN ORDER BEFORE OUTPUTTING JSON):
 
@@ -212,26 +217,35 @@ STEP 3 - ENFORCE STRICT AWS CAP (IF aws_count > 1):
   - Move ALL other AWS items (aws_count - 1) to aws_platform_changes
   - Note: "Moved {N} AWS items from top_signals to aws_platform_changes for diversity (STRICT 1-item cap)"
 
-STEP 4 - ENFORCE NON-AWS REQUIREMENT (MANDATORY):
+STEP 4 - ENFORCE TIME WINDOW (CRITICAL - RUN BEFORE OTHER CHECKS):
+  - Calculate cutoff_date: current date ({date}) minus {lookback_hours} hours
+  - For EVERY item in ALL categories (top_signals, security_alerts, aws_platform_changes, etc.):
+    - Parse published_at date
+    - IF published_at is older than cutoff_date: DELETE the item immediately
+    - NO EXCEPTIONS - even critical/high-impact items must be removed if too old
+  - This ensures daily emails contain ONLY fresh content from the last {lookback_hours} hours
+
+STEP 5 - ENFORCE NON-AWS REQUIREMENT (MANDATORY):
   - Count non-AWS items in top_signals (items where source_url does NOT contain aws.amazon.com/amazonaws.com)
   - IF non_aws_count < 2:
     - REQUIRED: Add items from security_alerts, developer_experience, or ai_trends
     - MINIMUM: 2 non-AWS items (3 preferred)
-    - Search with expanded 72h window if needed
+    - IMPORTANT: Only add items that pass STEP 4 time window check
   - Target: 3-4 items total with MAX 1 AWS, MIN 2-3 non-AWS
 
-STEP 5 - VALIDATE WHY_IT_MATTERS:
+STEP 6 - VALIDATE WHY_IT_MATTERS:
   - For each item in ALL categories: Assert why_it_matters is non-empty, >10 chars
   - Reject/omit any item failing this check
 
-STEP 6 - NORMALIZE VERSION-ONLY TITLES:
+STEP 7 - NORMALIZE VERSION-ONLY TITLES:
   - Rewrite any titles matching /^v?\d+(\.\d+)*$/ per rules above
 
-STEP 7 - FINAL VERIFICATION:
+STEP 8 - FINAL VERIFICATION:
   - Recheck: ALL source_urls exist in your citations (NO fake URLs)
   - Verify: top_signals has ≤2 AWS items
   - Verify: top_signals has diverse sources when available
-  - IF any check fails: Re-run STEPS 1-4 until compliant
+  - Verify: ALL items pass time window check (published_at within {lookback_hours} hours)
+  - IF any check fails: Re-run STEPS 1-7 until compliant
 
 FAIL CLOSED: If validation fails, omit the item rather than output invalid data.
 
@@ -259,18 +273,20 @@ EXAMPLE OF COMPLIANT top_signals (showing diversity):
 ⚠️  FINAL CHECKPOINT BEFORE RETURNING JSON ⚠️
 
 MANDATORY VERIFICATION (check ALL of these):
-1. ✓ EVERY source_url appears in your citations/search_results - NO fake URLs
-2. ✓ top_signals has MAX 1 AWS item (STRICT - reduced cap due to AWS saturation)
-3. ✓ top_signals has MIN 2-3 non-AWS items from different domains
-4. ✓ top_signals has 3-4 items total with DIVERSE sources (Security, DX, Healthtech, Competitors)
-5. ✓ All why_it_matters fields are non-empty and >10 characters
-6. ✓ ALL excess AWS items moved to aws_platform_changes
-7. ✓ Performed searches across ALL required domains (not just AWS)
-8. ✓ If top_signals has ONLY AWS items: DELETE top_signals and return empty array []
+1. ✓ ALL items have published_at within {lookback_hours} hours of {date} - NO EXCEPTIONS
+2. ✓ EVERY source_url appears in your citations/search_results - NO fake URLs
+3. ✓ top_signals has MAX 1 AWS item (STRICT - reduced cap due to AWS saturation)
+4. ✓ top_signals has MIN 2-3 non-AWS items from different domains
+5. ✓ top_signals has 3-4 items total with DIVERSE sources (Security, DX, Healthtech, Competitors)
+6. ✓ All why_it_matters fields are non-empty and >10 characters
+7. ✓ ALL excess AWS items moved to aws_platform_changes
+8. ✓ Performed searches across ALL required domains (not just AWS)
+9. ✓ If top_signals has ONLY AWS items: DELETE top_signals and return empty array []
 
 IF ANY CHECK FAILS: Re-run POST-PROCESSING GUARDS until ALL checks pass
 IF you have 2 AWS items in top_signals: MOVE 1 to aws_platform_changes NOW
 IF top_signals contains ONLY AWS with NO non-AWS: RETURN top_signals: [] (empty)
+IF any item published_at is older than {lookback_hours} hours: DELETE that item NOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ONLY the JSON object. No commentary, no markdown formatting, just the JSON.
